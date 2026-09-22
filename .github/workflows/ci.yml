@@ -32,9 +32,14 @@ jobs:
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
-      - run: uv sync --group dev
+      # Pinned to the oldest supported version, which is also mypy's configured
+      # python_version. The two have to agree: numpy ships version-conditional
+      # stubs, so checking a 3.12 environment against a 3.11 target makes mypy
+      # reject numpy's own `type` statements as invalid syntax. Runtime support
+      # for newer versions is covered by the pytest matrix instead.
+      - run: uv sync --group dev --python 3.11
       - name: Mypy
-        run: uv run mypy src/
+        run: uv run --python 3.11 mypy src/
 
   pytest:
     permissions:
