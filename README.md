@@ -2,6 +2,7 @@
 
 **Where the second goes in a local voice agent.**
 
+[![CI](https://github.com/jackboyla/dead-air/actions/workflows/ci.yml/badge.svg)](https://github.com/jackboyla/dead-air/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](./LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](./pyproject.toml)
 
