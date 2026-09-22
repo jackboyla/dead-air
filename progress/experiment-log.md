@@ -89,7 +89,7 @@ stage dominates it. Baseline for every later run.
 - CUDA_VISIBLE_DEVICES: `1` for the pipeline; llama.cpp pinned to device 0 by Docker
 - Git commit: pre-first-commit
 - Branch: main
-- Python environment: `.venv` (localvoice), `../speech-to-speech/.venv` (pipeline)
+- Python environment: `.venv` (deadair), `../speech-to-speech/.venv` (pipeline)
 - Docker image: `ghcr.io/ggml-org/llama.cpp:server-cuda`
 
 ### Resource check before launch
@@ -97,7 +97,7 @@ stage dominates it. Baseline for every later run.
 ```bash
 nvidia-smi   # GPU0 3950 MiB (llama.cpp), GPU1 7220 MiB (speech models)
 df -h        # 217 GB free
-tmux ls      # lrv-llama via docker, lrv-tap, lrv-s2s
+tmux ls      # da-llama via docker, da-tap, da-s2s
 ```
 
 ### Commands
@@ -105,23 +105,23 @@ tmux ls      # lrv-llama via docker, lrv-tap, lrv-s2s
 #### Setup
 
 ```bash
-docker run -d --name lrv-llama --gpus device=0 -p 18080:8080 \
+docker run -d --name da-llama --gpus device=0 -p 18080:8080 \
   -v /home/jack/workspace/models/llamacpp-cache:/root/.cache \
   -e LLAMA_CACHE=/root/.cache/llama.cpp \
   ghcr.io/ggml-org/llama.cpp:server-cuda \
   -hf ggml-org/gemma-4-E4B-it-GGUF:Q4_0 --alias local-gemma \
   --host 0.0.0.0 --port 8080 -ngl 99 -np 4 -c 16384 -fa on --no-mmproj
 
-tmux new -d -s lrv-tap './scripts/... localvoice tap --upstream http://127.0.0.1:18080 --port 18900 --trace progress/logs/tap.jsonl'
-tmux new -d -s lrv-s2s './scripts/run-pipeline.sh'
+tmux new -d -s da-tap './scripts/... deadair tap --upstream http://127.0.0.1:18080 --port 18900 --trace progress/logs/tap.jsonl'
+tmux new -d -s da-s2s './scripts/run-pipeline.sh'
 ```
 
 #### Eval
 
 ```bash
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/baseline
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/no-smart-turn      # --no_smart_turn
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/spec-reopen-200    # --speculative_reopen_ms 200
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/baseline
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/no-smart-turn      # --no_smart_turn
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/spec-reopen-200    # --speculative_reopen_ms 200
 ```
 
 ### Artifacts
@@ -207,7 +207,7 @@ often that shorter window makes the agent talk over the user.
 
 ```bash
 # Restart the pipeline at each window, then:
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/spec-reopen-<N>
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/spec-reopen-<N>
 uv run python scripts/false_endpoint.py --label reopen-<N>ms --repeats 2
 ```
 
@@ -285,12 +285,12 @@ ceiling for this card with Parakeet TDT and Qwen3-TTS loaded per unit.
 #### Eval
 
 ```bash
-uv run localvoice sweep --levels 1,2,4,6 --turns 7 --warmup 1 --out results/sweep
-uv run localvoice probe --barge-in-after 1.2 --turns 7 --out results/barge-in \
+uv run deadair sweep --levels 1,2,4,6 --turns 7 --warmup 1 --out results/sweep
+uv run deadair probe --barge-in-after 1.2 --turns 7 --out results/barge-in \
     --instructions "Answer thoroughly in four or five full sentences."
-uv run localvoice probe --turns 6 --fault "slow-start:1500ms" --out results/fault-slow-llm
-uv run localvoice probe --turns 7 --fault "reject:503;p=0.5"  --out results/fault-reject
-uv run localvoice probe --turns 6 --fault "truncate@4"        --out results/fault-truncate
+uv run deadair probe --turns 6 --fault "slow-start:1500ms" --out results/fault-slow-llm
+uv run deadair probe --turns 7 --fault "reject:503;p=0.5"  --out results/fault-reject
+uv run deadair probe --turns 6 --fault "truncate@4"        --out results/fault-truncate
 ```
 
 ### Artifacts
@@ -398,7 +398,7 @@ df -h        # llama.cpp cache 12 GB
 #### Setup
 
 ```bash
-docker run -d --name lrv-llama-q8 --gpus device=0 -p 18081:8080 \
+docker run -d --name da-llama-q8 --gpus device=0 -p 18081:8080 \
   -v /home/jack/workspace/models/llamacpp-cache:/root/.cache \
   -e LLAMA_CACHE=/root/.cache/llama.cpp \
   ghcr.io/ggml-org/llama.cpp:server-cuda \
@@ -410,11 +410,11 @@ docker run -d --name lrv-llama-q8 --gpus device=0 -p 18081:8080 \
 
 ```bash
 # Point the tap at each server in turn; the pipeline never moves.
-localvoice tap --upstream http://127.0.0.1:18080 --port 18900 --trace progress/logs/tap-q4.jsonl
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/quant-q4
+deadair tap --upstream http://127.0.0.1:18080 --port 18900 --trace progress/logs/tap-q4.jsonl
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/quant-q4
 
-localvoice tap --upstream http://127.0.0.1:18081 --port 18900 --trace progress/logs/tap-q8.jsonl
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/quant-q8
+deadair tap --upstream http://127.0.0.1:18081 --port 18900 --trace progress/logs/tap-q8.jsonl
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/quant-q8
 ```
 
 ### Artifacts

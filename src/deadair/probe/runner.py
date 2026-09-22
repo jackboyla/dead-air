@@ -32,11 +32,11 @@ from typing import Any
 
 import httpx
 
-from localvoice.probe.audio import PromptLibrary
-from localvoice.probe.client import RealtimeProbe, SessionConfig, SessionResult, write_trace
-from localvoice.timeline import TurnTimeline
+from deadair.probe.audio import PromptLibrary
+from deadair.probe.client import RealtimeProbe, SessionConfig, SessionResult, write_trace
+from deadair.timeline import TurnTimeline
 
-logger = logging.getLogger("localvoice.probe.runner")
+logger = logging.getLogger("deadair.probe.runner")
 
 
 @dataclass

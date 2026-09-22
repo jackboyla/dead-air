@@ -1,8 +1,8 @@
 """Measuring, fault-injecting reverse proxy for the LLM backend."""
 
-from localvoice.tap.faults import FaultInjector, FaultSpec, FaultSpecError, parse_specs
-from localvoice.tap.metrics import TapMetrics
-from localvoice.tap.proxy import LLMTap, RequestRecord, TapConfig, build_app
+from deadair.tap.faults import FaultInjector, FaultSpec, FaultSpecError, parse_specs
+from deadair.tap.metrics import TapMetrics
+from deadair.tap.proxy import LLMTap, RequestRecord, TapConfig, build_app
 
 __all__ = [
     "FaultInjector",

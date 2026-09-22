@@ -405,7 +405,7 @@ _HANDLERS = {
 
 
 def replay(events: Sequence[RecordedEvent], session_id: str = "replay") -> list[TurnTimeline]:
-    """Rebuild turns from a recorded trace. Used by tests and by ``localvoice report``."""
+    """Rebuild turns from a recorded trace. Used by tests and by ``deadair report``."""
 
     builder = TimelineBuilder(session_id=session_id)
     builder.extend(events)

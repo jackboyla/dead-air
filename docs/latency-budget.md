@@ -57,7 +57,7 @@ The LLM stage at 783 ms is where attention goes. And it is a red herring.
 
 ## The LLM is not the LLM stage
 
-`localvoice tap` sits between the pipeline and llama.cpp and times every request.
+`deadair tap` sits between the pipeline and llama.cpp and times every request.
 Those same turns, measured at the tap:
 
 | | Median |
@@ -203,9 +203,9 @@ wait and time to first token are separate metrics on the dashboard.
 docker compose up -d
 ./scripts/run-pipeline.sh
 
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/baseline
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/baseline
 
 # Restart the pipeline with --speculative_reopen_ms 200 (or 400), then:
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/spec-reopen-200
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/spec-reopen-200
 uv run python scripts/false_endpoint.py --label reopen-200ms
 ```

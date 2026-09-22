@@ -1,6 +1,6 @@
 apiVersion: 1
 providers:
-  - name: local-realtime-voice
+  - name: dead-air
     orgId: 1
     folder: ""
     type: file

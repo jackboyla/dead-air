@@ -27,10 +27,10 @@ from typing import Any
 
 import websockets
 
-from localvoice.probe.audio import Prompt, PromptLibrary, chunk_pcm, silence
-from localvoice.timeline import RecordedEvent, TimelineBuilder, TurnTimeline
+from deadair.probe.audio import Prompt, PromptLibrary, chunk_pcm, silence
+from deadair.timeline import RecordedEvent, TimelineBuilder, TurnTimeline
 
-logger = logging.getLogger("localvoice.probe")
+logger = logging.getLogger("deadair.probe")
 
 FRAME_MS = 20
 

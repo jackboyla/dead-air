@@ -18,7 +18,7 @@
 1. Study upstream `speech-to-speech` (done) and mirror its conventions.
 2. Stand up the local stack: llama.cpp CUDA server + Parakeet TDT STT + Qwen3-TTS,
    wired through the OpenAI Realtime API.
-3. Build `localvoice`: an LLM measurement/fault-injection proxy (`tap`), a Realtime
+3. Build `deadair`: an LLM measurement/fault-injection proxy (`tap`), a Realtime
    load probe (`probe`), a pool/usage Prometheus exporter, and a report renderer.
 4. Ship a WebRTC browser client that surfaces the per-turn latency breakdown live.
 5. Measure: latency budget, concurrency sweep, quantisation sweep, barge-in,
@@ -47,7 +47,7 @@ Complete. All six plan steps delivered and verified on hardware.
 
 - Stack runs end to end: llama.cpp (GPU 0) + Parakeet TDT + Qwen3-TTS (GPU 1),
   through the OpenAI Realtime API over both WebSocket and WebRTC.
-- `localvoice` ships tap, probe, sweep, report and exporter. 92 tests, no GPU needed.
+- `deadair` ships tap, probe, sweep, report and exporter. 92 tests, no GPU needed.
   ruff, ruff format and mypy all clean.
 - Compose stack verified live: all three Prometheus targets healthy, every Grafana
   dashboard query returning real data.
@@ -84,7 +84,7 @@ chosen; the trade is the result.
 
 Nothing blocking. Possible follow-ups:
 
-- Join tap records to turn timelines automatically in `localvoice report`, rather
+- Join tap records to turn timelines automatically in `deadair report`, rather
   than correlating by wall clock by hand.
 - A `--transport webrtc` option for the probe, so load tests exercise the same path
   the browser uses.
@@ -96,7 +96,7 @@ Nothing blocking. Possible follow-ups:
   up mid-stream the pipeline speaks the fragment and reports `status=completed` with
   an empty error list. Nothing on the Realtime event stream distinguishes it from a
   complete answer, so a monitor watching error counts sees a healthy system.
-  Reproducible with `localvoice probe --fault "truncate@4"`.
+  Reproducible with `deadair probe --fault "truncate@4"`.
 - **NLTK asset lookup bug.** `src/speech_to_speech/s2s_pipeline.py:64` checks
   `nltk.data.find("tokenizers/averaged_perceptron_tagger_eng")`, but NLTK installs
   that package under `taggers/`, not `tokenizers/`. The lookup therefore always

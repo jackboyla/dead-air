@@ -1,6 +1,6 @@
 {
   "title": "Local realtime voice",
-  "uid": "local-realtime-voice",
+  "uid": "dead-air",
   "tags": ["voice", "realtime", "llm"],
   "timezone": "browser",
   "editable": true,
@@ -34,12 +34,12 @@
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(rate(localvoice_llm_ttft_seconds_bucket[1m])) by (le))",
+          "expr": "histogram_quantile(0.5, sum(rate(deadair_llm_ttft_seconds_bucket[1m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(localvoice_llm_ttft_seconds_bucket[1m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(deadair_llm_ttft_seconds_bucket[1m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         }
@@ -60,12 +60,12 @@
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(rate(localvoice_llm_queue_seconds_bucket[1m])) by (le))",
+          "expr": "histogram_quantile(0.5, sum(rate(deadair_llm_queue_seconds_bucket[1m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(localvoice_llm_queue_seconds_bucket[1m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(deadair_llm_queue_seconds_bucket[1m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         }
@@ -86,7 +86,7 @@
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(localvoice_llm_max_inter_token_seconds_bucket[1m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(deadair_llm_max_inter_token_seconds_bucket[1m])) by (le))",
           "legendFormat": "p95 worst gap",
           "refId": "A"
         }
@@ -107,7 +107,7 @@
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "sum by (outcome) (rate(localvoice_llm_requests_total[1m]))",
+          "expr": "sum by (outcome) (rate(deadair_llm_requests_total[1m]))",
           "legendFormat": "{{outcome}}",
           "refId": "A"
         }

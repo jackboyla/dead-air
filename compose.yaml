@@ -9,13 +9,13 @@
 # because 8080, 8765 and 3000 are the first ports anything else on a shared
 # workstation takes. Override any of them in a local `.env`.
 ---
-name: local-realtime-voice
+name: dead-air
 
 services:
 
   llama:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
-    container_name: lrv-llama
+    container_name: da-llama
     command:
       - -hf
       - ${LLM_GGUF:-ggml-org/gemma-4-E4B-it-GGUF:Q4_0}
@@ -61,7 +61,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lrv-tap
+    container_name: da-tap
     # The trace file is bind-mounted from the host, so the container has to write
     # as a uid that owns that directory. Defaults to the usual first login user;
     # set DOCKER_USER="$(id -u):$(id -g)" in .env if yours differs.
@@ -94,7 +94,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lrv-exporter
+    container_name: da-exporter
     command:
       - exporter
       # The pipeline runs on the host, not in this network.
@@ -112,7 +112,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.7.3
-    container_name: lrv-prometheus
+    container_name: da-prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=7d
@@ -127,7 +127,7 @@ services:
 
   grafana:
     image: grafana/grafana:12.3.1
-    container_name: lrv-grafana
+    container_name: da-grafana
     ports:
       - "${GRAFANA_PORT:-13000}:3000"
     environment:
@@ -146,7 +146,7 @@ services:
 
   web:
     image: nginx:1.29-alpine
-    container_name: lrv-web
+    container_name: da-web
     ports:
       - "${WEB_PORT:-18088}:80"
     volumes:

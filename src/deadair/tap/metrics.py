@@ -24,7 +24,7 @@ from prometheus_client import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle guard
-    from localvoice.tap.proxy import RequestRecord
+    from deadair.tap.proxy import RequestRecord
 
 # Seconds. Dense through the range where a turn goes from good to bad.
 LATENCY_BUCKETS = (
@@ -63,47 +63,47 @@ class TapMetrics:
         self.registry = registry if registry is not None else CollectorRegistry()
 
         self.requests = Counter(
-            "localvoice_llm_requests_total",
+            "deadair_llm_requests_total",
             "Upstream LLM requests seen by the tap.",
             ["path", "status", "outcome"],
             registry=self.registry,
         )
         self.inflight = Gauge(
-            "localvoice_llm_inflight_requests",
+            "deadair_llm_inflight_requests",
             "Requests accepted by the tap and not yet finished.",
             registry=self.registry,
         )
         self.queue_seconds = Histogram(
-            "localvoice_llm_queue_seconds",
+            "deadair_llm_queue_seconds",
             "Accepted to upstream response headers. Slot wait plus prompt processing.",
             buckets=LATENCY_BUCKETS,
             registry=self.registry,
         )
         self.ttft_seconds = Histogram(
-            "localvoice_llm_ttft_seconds",
+            "deadair_llm_ttft_seconds",
             "Accepted to first streamed chunk.",
             buckets=LATENCY_BUCKETS,
             registry=self.registry,
         )
         self.total_seconds = Histogram(
-            "localvoice_llm_request_seconds",
+            "deadair_llm_request_seconds",
             "Accepted to last streamed chunk.",
             buckets=LATENCY_BUCKETS,
             registry=self.registry,
         )
         self.max_gap_seconds = Histogram(
-            "localvoice_llm_max_inter_token_seconds",
+            "deadair_llm_max_inter_token_seconds",
             "Largest gap between consecutive streamed chunks in a request.",
             buckets=GAP_BUCKETS,
             registry=self.registry,
         )
         self.output_tokens = Counter(
-            "localvoice_llm_output_tokens_total",
+            "deadair_llm_output_tokens_total",
             "Completion tokens reported by the upstream, when it reports them.",
             registry=self.registry,
         )
         self.faults = Counter(
-            "localvoice_llm_faults_total",
+            "deadair_llm_faults_total",
             "Injected faults applied, by fault name.",
             ["fault"],
             registry=self.registry,

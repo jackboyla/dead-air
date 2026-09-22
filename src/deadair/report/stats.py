@@ -22,7 +22,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from localvoice.timeline import TurnTimeline
+from deadair.timeline import TurnTimeline
 
 # Ordered stages of the pipeline as the client observes them. The labels are the
 # vocabulary used by the report, the dashboard, and the README, so they are

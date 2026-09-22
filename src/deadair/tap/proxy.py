@@ -14,7 +14,7 @@ histograms and appended to a JSONL trace for offline joining against turn timeli
 **Break.** Fault injection is a first-class feature rather than a test hook,
 because "what happens when the LLM stalls mid-sentence" is a question every voice
 deployment eventually has to answer, and the honest way to answer it is to make it
-happen on demand. See :mod:`localvoice.tap.faults`.
+happen on demand. See :mod:`deadair.tap.faults`.
 
 Streaming bodies are forwarded chunk by chunk and never buffered whole. A proxy
 that accumulates an SSE stream before relaying it would destroy the very latency
@@ -39,10 +39,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route
 
-from localvoice.tap.faults import FaultInjector, FaultSpec
-from localvoice.tap.metrics import TapMetrics
+from deadair.tap.faults import FaultInjector, FaultSpec
+from deadair.tap.metrics import TapMetrics
 
-logger = logging.getLogger("localvoice.tap")
+logger = logging.getLogger("deadair.tap")
 
 # Hop-by-hop headers must not be forwarded; length and encoding are recomputed by
 # the server for the response we actually emit.
@@ -316,7 +316,7 @@ class LLMTap:
         record.connected_at = time.monotonic()
         record.status = response.status_code
         out_headers = {k: v for k, v in response.headers.items() if k.lower() not in _STRIPPED_RESPONSE_HEADERS}
-        out_headers["x-localvoice-request-id"] = record.request_id
+        out_headers["x-deadair-request-id"] = record.request_id
 
         return StreamingResponse(
             self._relay(response, record, decision),

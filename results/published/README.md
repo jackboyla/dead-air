@@ -5,7 +5,7 @@ self-contained HTML report. The raw JSONL event traces that produced them are ke
 alongside, so every number here can be recomputed rather than taken on trust:
 
 ```bash
-uv run localvoice report results/published/baseline/probe-c1.json
+uv run deadair report results/published/baseline/probe-c1.json
 ```
 
 All of it was measured on `radiance-ws`: 2x RTX 5090 (32 GB), 60 GB RAM, driver

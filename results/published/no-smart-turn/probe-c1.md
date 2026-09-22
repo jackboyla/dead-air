@@ -16,7 +16,7 @@ Host `radiance-ws`, NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02; NVIDIA GeFor
 | Failed | 0 |
 | Timed out | 0 |
 | Sessions refused | 0 / 1 |
-| Wall time | 29.0 s |
+| Wall time | 28.9 s |
 
 ## Headline latency
 

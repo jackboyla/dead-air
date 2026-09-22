@@ -22,8 +22,8 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
-from localvoice.tap.faults import FaultInjector, FaultSpec, FaultSpecError, parse_specs
-from localvoice.tap.proxy import LLMTap, TapConfig
+from deadair.tap.faults import FaultInjector, FaultSpec, FaultSpecError, parse_specs
+from deadair.tap.proxy import LLMTap, TapConfig
 
 CHUNK_DELAY_S = 0.02
 CHUNK_COUNT = 6
@@ -143,7 +143,7 @@ class TestPassthrough:
     async def test_request_id_header_is_added_for_correlation(self, harness: Harness) -> None:
         async with harness.client() as client:
             response = await client.post("/v1/chat/completions", json={"model": "m", "stream": False})
-        assert response.headers["x-localvoice-request-id"]
+        assert response.headers["x-deadair-request-id"]
 
 
 class TestMeasurement:
@@ -192,8 +192,8 @@ class TestMeasurement:
         async with harness.client() as client:
             await client.post("/v1/chat/completions", json={"model": "m", "stream": False})
             response = await client.get("/metrics")
-        assert "localvoice_llm_requests_total" in response.text
-        assert "localvoice_llm_ttft_seconds" in response.text
+        assert "deadair_llm_requests_total" in response.text
+        assert "deadair_llm_ttft_seconds" in response.text
 
     async def test_scrape_body_matches_its_declared_content_type(self, harness: Harness) -> None:
         """Prometheus rejects the whole scrape when these disagree.

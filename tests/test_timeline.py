@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from localvoice.timeline import RecordedEvent, TimelineBuilder, replay
+from deadair.timeline import RecordedEvent, TimelineBuilder, replay
 
 
 def event(t: float, type_: str, **payload) -> RecordedEvent:
@@ -178,7 +178,7 @@ class TestAudioAccounting:
     def test_base64_length_is_computed_without_decoding(self, encoded: str, expected: int) -> None:
         import base64
 
-        from localvoice.timeline import _decoded_len
+        from deadair.timeline import _decoded_len
 
         assert _decoded_len(encoded) == expected
         if encoded:

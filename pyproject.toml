@@ -3,7 +3,7 @@ requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "local-realtime-voice"
+name = "dead-air"
 version = "0.1.0"
 description = "A fully local OpenAI-Realtime voice agent, with its latency budget measured"
 readme = "README.md"
@@ -42,12 +42,12 @@ webrtc = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jackboyla/local-realtime-voice"
-Repository = "https://github.com/jackboyla/local-realtime-voice"
-Issues = "https://github.com/jackboyla/local-realtime-voice/issues"
+Homepage = "https://github.com/jackboyla/dead-air"
+Repository = "https://github.com/jackboyla/dead-air"
+Issues = "https://github.com/jackboyla/dead-air/issues"
 
 [project.scripts]
-localvoice = "localvoice.cli:main"
+deadair = "deadair.cli:main"
 
 [dependency-groups]
 dev = [
@@ -67,11 +67,11 @@ package = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["localvoice*"]
+include = ["deadair*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-localvoice = ["py.typed", "assets/*.json"]
+deadair = ["py.typed", "assets/*.json"]
 
 [tool.ruff]
 src = ["src"]

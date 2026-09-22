@@ -1,18 +1,24 @@
-# local-realtime-voice
+# dead-air
 
-A fully local, OpenAI-Realtime-compatible voice agent on two consumer GPUs — and
-the measurement tooling that says where its latency actually goes.
+**Where the second goes in a local voice agent.**
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](./LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](./pyproject.toml)
 
-No API keys, no hosted inference, no audio leaving the machine. Speech recognition,
-the language model and speech synthesis all run on local GPUs behind Hugging Face
-[`speech-to-speech`](https://github.com/huggingface/speech-to-speech), which exposes
-the whole thing over the OpenAI Realtime WebSocket and WebRTC event set.
+*Dead air* is what broadcast engineers call the silence when nothing is going out.
+In a voice agent it is the gap between a person finishing their sentence and the
+machine making a sound — about **one second** on the stack measured here, and
+almost none of it is the language model.
 
-Standing that up is the easy part. The question worth answering is **where the
-second goes**, and the answer turned out to be surprising.
+This repository is a fully local, OpenAI-Realtime-compatible voice agent running on
+two consumer GPUs, plus the tooling that accounts for every millisecond of that
+silence. No API keys, no hosted inference, no audio leaving the machine. Speech
+recognition, the language model and speech synthesis all run locally behind Hugging
+Face [`speech-to-speech`](https://github.com/huggingface/speech-to-speech), which
+exposes the whole thing over the OpenAI Realtime WebSocket and WebRTC event set.
+
+Standing that up is the easy part. Explaining the silence is the interesting part,
+and the answer turned out to be surprising.
 
 ---
 
@@ -53,7 +59,7 @@ quoting half a result. Full working in [`docs/latency-budget.md`](docs/latency-b
 ## Architecture
 
 ```
-                    browser (web/)                    localvoice probe
+                    browser (web/)                    deadair probe
                           │                                  │
                     WebRTC │ audio + oai-events        WebSocket │ Realtime events
                           ▼                                  ▼
@@ -66,7 +72,7 @@ quoting half a result. Full working in [`docs/latency-budget.md`](docs/latency-b
                      │ /v1/usage, /v1/pool       │ OpenAI Responses API
                      ▼                           ▼
             ┌─────────────────┐         ┌──────────────────────────┐
-            │ localvoice      │         │ localvoice tap  · :18900 │
+            │ deadair      │         │ deadair tap  · :18900 │
             │ exporter :18901 │         │ measures + injects faults│
             └────────┬────────┘         └────────────┬─────────────┘
                      │                               │
@@ -81,18 +87,18 @@ quoting half a result. Full working in [`docs/latency-budget.md`](docs/latency-b
 
 Three pieces do the work:
 
-**`localvoice tap`** is a streaming reverse proxy between the pipeline and the LLM
+**`deadair tap`** is a streaming reverse proxy between the pipeline and the LLM
 server. The Realtime event stream can tell you when the *pipeline* produced its
 first token; it cannot tell you how much of that was the model. The tap can, without
 forking either project. It also injects faults on demand, because "what happens when
 the backend stalls mid-sentence" is only answerable by making it happen.
 
-**`localvoice probe`** drives real conversations over the Realtime protocol and
+**`deadair probe`** drives real conversations over the Realtime protocol and
 reduces the event stream into a per-turn latency budget. It speaks synthesized
 prompts in real time, at microphone pacing, because server-side VAD behaves
 differently if you dump an utterance in one frame.
 
-**`localvoice report`** turns a run into Markdown and a self-contained HTML page
+**`deadair report`** turns a run into Markdown and a self-contained HTML page
 that opens offline.
 
 Nothing here patches `speech-to-speech`. It is used as a released dependency, so
@@ -109,8 +115,8 @@ pool.
 ### 1. Install
 
 ```bash
-git clone https://github.com/jackboyla/local-realtime-voice.git
-cd local-realtime-voice
+git clone https://github.com/jackboyla/dead-air.git
+cd dead-air
 uv sync --group dev
 ```
 
@@ -166,19 +172,19 @@ To check the WebRTC path without a browser:
 ../speech-to-speech/.venv/bin/python scripts/make_hesitation_prompts.py --out assets/prompts-hesitation
 
 # Steady-state latency budget
-uv run localvoice probe --concurrency 1 --turns 9 --warmup 1 --out results/baseline
+uv run deadair probe --concurrency 1 --turns 9 --warmup 1 --out results/baseline
 
 # How many conversations it sustains, and what gives way first
-uv run localvoice sweep --levels 1,2,4,6 --turns 7 --out results/sweep
+uv run deadair sweep --levels 1,2,4,6 --turns 7 --out results/sweep
 
 # Interruption handling. Replies must be long enough to interrupt, or you measure nothing.
-uv run localvoice probe --barge-in-after 1.2 --turns 7 --out results/barge-in \
+uv run deadair probe --barge-in-after 1.2 --turns 7 --out results/barge-in \
     --instructions "You are a voice assistant. Answer thoroughly in four or five full sentences."
 
 # Backend failures
-uv run localvoice probe --turns 6 --fault "slow-start:1500ms" --out results/fault-slow-llm
-uv run localvoice probe --turns 7 --fault "reject:503;p=0.5"  --out results/fault-reject
-uv run localvoice probe --turns 6 --fault "truncate@4"        --out results/fault-truncate
+uv run deadair probe --turns 6 --fault "slow-start:1500ms" --out results/fault-slow-llm
+uv run deadair probe --turns 7 --fault "reject:503;p=0.5"  --out results/fault-reject
+uv run deadair probe --turns 6 --fault "truncate@4"        --out results/fault-truncate
 
 # How often a shorter reopen window talks over a speaker who paused
 uv run python scripts/false_endpoint.py --label reopen-800ms-default
@@ -298,16 +304,16 @@ reduces capacity.
 ## Tooling reference
 
 ```
-localvoice tap       measuring, fault-injecting reverse proxy for the LLM backend
-localvoice exporter  republish the pipeline's /v1/usage and /v1/pool as metrics
-localvoice probe     drive Realtime sessions and record the latency budget
-localvoice sweep     run the same scenario at increasing concurrency
-localvoice report    re-render a saved run without re-running it
+deadair tap       measuring, fault-injecting reverse proxy for the LLM backend
+deadair exporter  republish the pipeline's /v1/usage and /v1/pool as metrics
+deadair probe     drive Realtime sessions and record the latency budget
+deadair sweep     run the same scenario at increasing concurrency
+deadair report    re-render a saved run without re-running it
 ```
 
 ### Fault specifications
 
-Passed to `localvoice tap --fault`, to `localvoice probe --fault` (applied to a
+Passed to `deadair tap --fault`, to `deadair probe --fault` (applied to a
 running tap for the duration of the run), or POSTed to `/faults` to degrade a live
 backend without restarting it.
 
@@ -374,7 +380,7 @@ number can be recomputed from the event timeline behind it.
 ## Repository layout
 
 ```
-src/localvoice/       tap, probe, report, exporter, CLI
+src/deadair/       tap, probe, report, exporter, CLI
   timeline.py         the Realtime event reducer — where every latency is defined
 web/                  WebRTC browser client with a live latency breakdown
 deploy/               Prometheus config, provisioned Grafana dashboard

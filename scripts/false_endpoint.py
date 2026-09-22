@@ -24,8 +24,8 @@ import json
 import time
 from pathlib import Path
 
-from localvoice.probe.audio import PromptLibrary, silence
-from localvoice.probe.client import RealtimeProbe, SessionConfig
+from deadair.probe.audio import PromptLibrary, silence
+from deadair.probe.client import RealtimeProbe, SessionConfig
 
 SETTLE_S = 2.5
 

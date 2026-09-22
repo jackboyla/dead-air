@@ -15,8 +15,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from localvoice.exporter import PipelineExporter
-from localvoice.probe.audio import (
+from deadair.exporter import PipelineExporter
+from deadair.probe.audio import (
     BYTES_PER_SAMPLE,
     PIPELINE_RATE_HZ,
     Prompt,

@@ -11,11 +11,11 @@ import json
 
 import pytest
 
-from localvoice.probe.client import SessionResult
-from localvoice.probe.runner import RunResult, RunSpec
-from localvoice.report.render import render, render_markdown
-from localvoice.report.stats import budget, describe, percentile, representative_turn, summarize
-from localvoice.timeline import TurnTimeline
+from deadair.probe.client import SessionResult
+from deadair.probe.runner import RunResult, RunSpec
+from deadair.report.render import render, render_markdown
+from deadair.report.stats import budget, describe, percentile, representative_turn, summarize
+from deadair.timeline import TurnTimeline
 
 
 def make_turn(
@@ -225,6 +225,57 @@ class TestRender:
         markdown = render_markdown(result, summarize(turns), [])
         assert "Completed | 0 (0.0%)" in markdown
         assert "upstream_unavailable" in markdown
+
+    def test_rerendering_a_saved_run_reproduces_the_same_statistics(self, tmp_path) -> None:
+        """A report regenerated from a saved run must not disagree with the original.
+
+        The saved run keeps every turn, warmup included, so re-rendering has to trim
+        the same count. Getting this wrong changes n and every percentile with it,
+        silently, which is worse than failing outright.
+        """
+
+        from deadair.cli import main
+        from deadair.probe.runner import write_result
+
+        slow_warmup = make_turn(0, llm=5.0)
+        steady = [make_turn(i, llm=0.2) for i in range(1, 6)]
+        original = make_result([slow_warmup, *steady], warmup=1)
+        before = summarize(original.measured_turns)
+
+        run_path = tmp_path / "run.json"
+        write_result(run_path, original)
+        assert main(["report", str(run_path), "--out", str(tmp_path)]) == 0
+
+        rendered = (tmp_path / "run-report.md").read_text(encoding="utf-8")
+        llm = before.stage("llm_ttft")
+        assert llm is not None and llm.count == 5
+        # n and the median both survive the round trip.
+        assert f"| {llm.count} |" in rendered
+        assert "200 ms" in rendered
+        assert "5.00 s" not in rendered
+
+    def test_rerendering_keeps_the_barge_in_measure(self, tmp_path) -> None:
+        """Barge-in is stored only as a duration, so it has to be rebuilt by hand.
+
+        Without that, a regenerated barge-in report silently loses the one row the
+        run existed to produce.
+        """
+
+        from deadair.cli import main
+        from deadair.probe.runner import write_result
+
+        turn = make_turn(0, status="cancelled")
+        turn.barge_in_sent = turn.first_audio
+        turn.last_audio_after_barge_in = (turn.first_audio or 0.0) + 0.393
+        assert turn.barge_in_ms == pytest.approx(393, abs=1)
+
+        run_path = tmp_path / "bargein.json"
+        write_result(run_path, make_result([turn]))
+        assert main(["report", str(run_path), "--out", str(tmp_path)]) == 0
+
+        rendered = (tmp_path / "bargein-report.md").read_text(encoding="utf-8")
+        assert "Barge-in to last audio" in rendered
+        assert "393 ms" in rendered
 
     def test_report_writes_both_files(self, tmp_path) -> None:
         report = render(make_result([make_turn(0)]))

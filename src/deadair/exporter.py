@@ -21,7 +21,7 @@ from typing import Any
 
 import httpx
 
-# Plain-text exposition; see the note in localvoice.tap.metrics about why this
+# Plain-text exposition; see the note in deadair.tap.metrics about why this
 # must not be paired with the OpenMetrics content type.
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Gauge, generate_latest
 from starlette.applications import Starlette
@@ -29,7 +29,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Route
 
-logger = logging.getLogger("localvoice.exporter")
+logger = logging.getLogger("deadair.exporter")
 
 POOL_STATES = ("idle", "active", "draining", "stuck")
 
@@ -145,7 +145,7 @@ class PipelineExporter:
 
     async def startup(self) -> None:
         self._client = httpx.AsyncClient(timeout=5.0)
-        self._task = asyncio.create_task(self._loop(), name="localvoice-exporter")
+        self._task = asyncio.create_task(self._loop(), name="deadair-exporter")
 
     async def shutdown(self) -> None:
         if self._task is not None:

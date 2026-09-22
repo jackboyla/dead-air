@@ -16,9 +16,9 @@ COPY src/ ./src/
 RUN pip install --no-cache-dir .
 
 # Runs unprivileged; nothing here needs root.
-RUN useradd --create-home --uid 10001 localvoice \
-    && mkdir -p /traces && chown localvoice:localvoice /traces
-USER localvoice
+RUN useradd --create-home --uid 10001 deadair \
+    && mkdir -p /traces && chown deadair:deadair /traces
+USER deadair
 
-ENTRYPOINT ["localvoice"]
+ENTRYPOINT ["deadair"]
 CMD ["--help"]

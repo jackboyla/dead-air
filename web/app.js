@@ -6,7 +6,7 @@
  * and events on an `oai-events` data channel.
  *
  * The latency measurements here use the same stage boundaries as
- * `localvoice.timeline`, deliberately. A dashboard that defined "LLM latency"
+ * `deadair.timeline`, deliberately. A dashboard that defined "LLM latency"
  * differently from the benchmark would be worse than no dashboard.
  *
  * One measurement note that matters: the browser cannot see when the *server's*

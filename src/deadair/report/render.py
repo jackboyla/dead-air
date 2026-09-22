@@ -13,8 +13,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from localvoice.probe.runner import RunResult
-from localvoice.report.stats import (
+from deadair.probe.runner import RunResult
+from deadair.report.stats import (
     BudgetSlice,
     Distribution,
     TurnStats,
@@ -172,7 +172,7 @@ def render_html(result: RunResult, stats: TurnStats, slices: list[BudgetSlice]) 
         "turns": [turn.to_json() for turn in result.measured_turns],
     }
     data = json.dumps(payload, indent=None, separators=(",", ":"))
-    title = html.escape(f"{result.spec.name} — local-realtime-voice")
+    title = html.escape(f"{result.spec.name} — dead-air")
     return _HTML_TEMPLATE.replace("__TITLE__", title).replace("__DATA__", data)
 
 

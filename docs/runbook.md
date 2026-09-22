@@ -12,8 +12,8 @@ shared workstation claims. Override in `.env`.
 |---|---:|---|
 | llama.cpp | 18080 | `LLAMA_PORT` |
 | speech-to-speech Realtime | 18765 | `PORT` (script), `PIPELINE_PORT` (compose) |
-| localvoice tap | 18900 | `TAP_PORT` |
-| localvoice exporter | 18901 | `EXPORTER_PORT` |
+| deadair tap | 18900 | `TAP_PORT` |
+| deadair exporter | 18901 | `EXPORTER_PORT` |
 | Prometheus | 19090 | `PROMETHEUS_PORT` |
 | Grafana | 13000 | `GRAFANA_PORT` |
 | Web client | 18088 | `WEB_PORT` |
@@ -43,7 +43,7 @@ Long-running processes go in tmux, never a foreground shell:
 
 ```bash
 docker compose up -d
-tmux new -d -s lrv-s2s './scripts/run-pipeline.sh 2>&1 | tee progress/logs/pipeline.log'
+tmux new -d -s da-s2s './scripts/run-pipeline.sh 2>&1 | tee progress/logs/pipeline.log'
 
 # Verify it is actually up, rather than trusting that the launch returned
 until curl -sf http://127.0.0.1:18765/v1/pool; do sleep 5; done
@@ -96,7 +96,7 @@ of in compose:
 
 ```bash
 docker compose stop exporter
-uv run localvoice exporter --pipeline-url http://127.0.0.1:18765 --host 0.0.0.0 --port 18901
+uv run deadair exporter --pipeline-url http://127.0.0.1:18765 --host 0.0.0.0 --port 18901
 ```
 
 ## Known failure modes
@@ -181,7 +181,7 @@ reply ending naturally, not a cancel.
 **What to do.** Make the assistant say more, then interrupt later:
 
 ```bash
-uv run localvoice probe --barge-in-after 1.2 --turns 7 \
+uv run deadair probe --barge-in-after 1.2 --turns 7 \
     --instructions "You are a voice assistant. Answer thoroughly in four or five full sentences."
 ```
 
@@ -199,13 +199,13 @@ Realtime event stream distinguishes it from a complete answer.
 **What to do.** Do not rely on error counts to detect it. The tap does see it: the
 request is recorded with `error: "fault:truncate"` for injected cases, and a real
 upstream hangup shows up as a short chunk count and an httpx error on the record.
-Watching `localvoice_llm_requests_total{outcome="error"}` catches what the pipeline's
+Watching `deadair_llm_requests_total{outcome="error"}` catches what the pipeline's
 own metrics miss. Reply length against expectation is the other signal.
 
 Reproduce it deliberately:
 
 ```bash
-uv run localvoice probe --turns 6 --fault "truncate@4" --out results/fault-truncate
+uv run deadair probe --turns 6 --fault "truncate@4" --out results/fault-truncate
 ```
 
 ### Out of memory with a larger pool
@@ -232,7 +232,7 @@ curl -s -X POST http://127.0.0.1:18900/faults \
 curl -s -X POST http://127.0.0.1:18900/faults -d '{"faults": []}'
 ```
 
-`localvoice probe --fault` does this around a run and always restores an empty fault
+`deadair probe --fault` does this around a run and always restores an empty fault
 set afterwards, so a leftover fault cannot poison the next scenario.
 
 ## Swapping the language model
@@ -241,14 +241,14 @@ The pipeline points at the tap, so changing models means restarting the tap, not
 pipeline. The speech models stay loaded and comparisons stay clean:
 
 ```bash
-docker run -d --name lrv-llama-q8 --gpus device=0 -p 18081:8080 \
+docker run -d --name da-llama-q8 --gpus device=0 -p 18081:8080 \
   -v "$PWD/cache:/root/.cache" -e LLAMA_CACHE=/root/.cache/llama.cpp \
   ghcr.io/ggml-org/llama.cpp:server-cuda \
   -hf ggml-org/gemma-4-E4B-it-GGUF:Q8_0 --alias local-gemma \
   --host 0.0.0.0 --port 8080 -ngl 99 -np 4 -c 16384 -fa on --no-mmproj
 
-tmux kill-session -t lrv-tap
-tmux new -d -s lrv-tap '.venv/bin/localvoice tap --upstream http://127.0.0.1:18081 --port 18900'
+tmux kill-session -t da-tap
+tmux new -d -s da-tap '.venv/bin/deadair tap --upstream http://127.0.0.1:18081 --port 18900'
 ```
 
 Keep the `--alias` matching the pipeline's `--model_name`, or requests are rejected

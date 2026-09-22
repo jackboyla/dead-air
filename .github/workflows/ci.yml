@@ -79,9 +79,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build
-        run: docker build -t local-realtime-voice:ci .
+        run: docker build -t dead-air:ci .
       - name: CLI smoke test
-        run: docker run --rm local-realtime-voice:ci --version
+        run: docker run --rm dead-air:ci --version
 
   compose:
     permissions:

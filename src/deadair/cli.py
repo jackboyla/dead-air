@@ -2,11 +2,11 @@
 
 ::
 
-    localvoice tap       run the measuring, fault-injecting LLM proxy
-    localvoice exporter  republish the pipeline's own counters as Prometheus metrics
-    localvoice probe     drive Realtime sessions and record the latency budget
-    localvoice sweep     run a concurrency sweep and report where it breaks
-    localvoice report    re-render a saved run without re-running it
+    deadair tap       run the measuring, fault-injecting LLM proxy
+    deadair exporter  republish the pipeline's own counters as Prometheus metrics
+    deadair probe     drive Realtime sessions and record the latency budget
+    deadair sweep     run a concurrency sweep and report where it breaks
+    deadair report    re-render a saved run without re-running it
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from localvoice import __version__
+from deadair import __version__
 
 DEFAULT_REALTIME_URL = "ws://127.0.0.1:18765/v1/realtime"
 DEFAULT_TAP_URL = "http://127.0.0.1:18900"
@@ -38,10 +38,10 @@ def _configure_logging(level: str) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="localvoice",
+        prog="deadair",
         description="Measure a local OpenAI-Realtime voice deployment.",
     )
-    parser.add_argument("--version", action="version", version=f"localvoice {__version__}")
+    parser.add_argument("--version", action="version", version=f"deadair {__version__}")
     parser.add_argument("--log-level", default="info", help="Logging level. Default is info.")
     sub = parser.add_subparsers(dest="command", metavar="COMMAND", required=True)
 
@@ -116,7 +116,7 @@ def _add_probe_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def _session_config(args: argparse.Namespace) -> Any:
-    from localvoice.probe.client import SessionConfig
+    from deadair.probe.client import SessionConfig
 
     config = SessionConfig(url=args.url, send_rate=args.send_rate)
     if args.instructions:
@@ -127,14 +127,14 @@ def _session_config(args: argparse.Namespace) -> Any:
 
 
 def _load_prompts(args: argparse.Namespace) -> Any:
-    from localvoice.probe.audio import PromptLibrary
+    from deadair.probe.audio import PromptLibrary
 
     return PromptLibrary.load(args.prompts, target_rate=args.send_rate)
 
 
 def _run_and_report(args: argparse.Namespace, spec: Any, stem: str) -> Any:
-    from localvoice.probe import runner
-    from localvoice.report.render import render
+    from deadair.probe import runner
+    from deadair.report.render import render
 
     prompts = _load_prompts(args)
     config = _session_config(args)
@@ -153,8 +153,8 @@ def _run_and_report(args: argparse.Namespace, spec: Any, stem: str) -> Any:
 def _cmd_tap(args: argparse.Namespace) -> int:
     import uvicorn
 
-    from localvoice.tap.faults import FaultSpecError, parse_specs
-    from localvoice.tap.proxy import TapConfig, build_app
+    from deadair.tap.faults import FaultSpecError, parse_specs
+    from deadair.tap.proxy import TapConfig, build_app
 
     try:
         faults = parse_specs(args.fault)
@@ -178,7 +178,7 @@ def _cmd_tap(args: argparse.Namespace) -> int:
 def _cmd_exporter(args: argparse.Namespace) -> int:
     import uvicorn
 
-    from localvoice.exporter import build_app
+    from deadair.exporter import build_app
 
     app = build_app(args.pipeline_url, interval_s=args.interval)
     uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level)
@@ -186,7 +186,7 @@ def _cmd_exporter(args: argparse.Namespace) -> int:
 
 
 def _cmd_probe(args: argparse.Namespace) -> int:
-    from localvoice.probe.runner import RunSpec
+    from deadair.probe.runner import RunSpec
 
     name = args.name or (
         f"barge-in x{args.concurrency}" if args.barge_in_after is not None else f"latency x{args.concurrency}"
@@ -207,7 +207,7 @@ def _cmd_probe(args: argparse.Namespace) -> int:
 
 
 def _cmd_sweep(args: argparse.Namespace) -> int:
-    from localvoice.probe.runner import RunSpec
+    from deadair.probe.runner import RunSpec
 
     levels = [int(value) for value in str(args.levels).split(",") if value.strip()]
     summary: list[dict[str, Any]] = []
@@ -229,7 +229,7 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
 
 
 def _sweep_row(level: int, result: Any) -> dict[str, Any]:
-    from localvoice.report.stats import summarize
+    from deadair.report.stats import summarize
 
     stats = summarize(result.measured_turns)
     perceived = stats.stage("perceived_ttfa")
@@ -271,10 +271,8 @@ def _write_sweep_summary(out: Path, summary: list[dict[str, Any]]) -> None:
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
-    from localvoice.probe.client import SessionResult
-    from localvoice.probe.runner import RunResult, RunSpec
-    from localvoice.report.render import render
-    from localvoice.timeline import TurnTimeline
+    from deadair.probe.runner import RunResult, RunSpec
+    from deadair.report.render import render
 
     payload = json.loads(args.run.read_text(encoding="utf-8"))
     spec_payload = payload.get("spec", {})
@@ -296,10 +294,9 @@ def _cmd_report(args: argparse.Namespace) -> int:
         sessions=sessions,
         environment=payload.get("environment", {}),
     )
-    # A saved run already had its warmup trimmed on the way out, so re-rendering
-    # must not trim it a second time.
-    result.spec.warmup_turns = 0
-    _ = TurnTimeline, SessionResult  # keep the imports honest for type checkers
+    # The saved run keeps every turn, warmup included, and records how many were
+    # warmup. Re-rendering must trim the same count the original run trimmed, or a
+    # report regenerated from a trace quietly disagrees with the one it replaces.
 
     out = args.out or args.run.parent
     report = render(result)
@@ -309,8 +306,8 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 def _session_from_json(item: dict[str, Any]) -> Any:
-    from localvoice.probe.client import SessionResult
-    from localvoice.timeline import TurnTimeline
+    from deadair.probe.client import SessionResult
+    from deadair.timeline import TurnTimeline
 
     turns: list[TurnTimeline] = []
     for raw in item.get("turns", []):
@@ -365,6 +362,12 @@ def _restore_marks(turn: Any, latency: dict[str, Any], realtime_factor: Any) -> 
     total = value("response_total")
     if total is not None and turn.response_created is not None:
         turn.response_done = turn.response_created + total
+    # Barge-in has no timestamp of its own in the saved run, only a duration.
+    # Anchor it anywhere consistent; the report only ever reads the difference.
+    barge_in = value("barge_in")
+    if barge_in is not None and turn.first_audio is not None:
+        turn.barge_in_sent = turn.first_audio
+        turn.last_audio_after_barge_in = turn.first_audio + barge_in
     if isinstance(realtime_factor, (int, float)) and turn.first_audio is not None and realtime_factor > 0:
         turn.audio_done = turn.first_audio + turn.audio_duration_ms / 1000.0 / float(realtime_factor)
 
