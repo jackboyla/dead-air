@@ -1,0 +1,158 @@
+# The stateless half of the deployment: LLM server, measuring tap, and observability.
+#
+# The speech pipeline itself is not here. Its CUDA image is large, it holds the
+# models a contributor iterates on, and running it natively via
+# `scripts/run-pipeline.sh` is what development actually looks like. Everything in
+# this file is something you start once and forget.
+#
+# Ports are deliberately in an 18xxx/19xxx block rather than on the usual defaults,
+# because 8080, 8765 and 3000 are the first ports anything else on a shared
+# workstation takes. Override any of them in a local `.env`.
+---
+name: local-realtime-voice
+
+services:
+
+  llama:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: lrv-llama
+    command:
+      - -hf
+      - ${LLM_GGUF:-ggml-org/gemma-4-E4B-it-GGUF:Q4_0}
+      - --alias
+      - ${LLM_ALIAS:-local-gemma}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - -ngl
+      - "99"
+      # One llama.cpp slot per pipeline unit, so a full pool never queues on the LLM.
+      - -np
+      - ${LLM_PARALLEL:-4}
+      - -c
+      - ${LLM_CONTEXT:-16384}
+      - -fa
+      - "on"
+      # STT already supplies text; the multimodal projector is dead weight here.
+      - --no-mmproj
+    ports:
+      - "${LLAMA_PORT:-18080}:8080"
+    volumes:
+      - ${MODEL_CACHE:-./cache}:/root/.cache
+    environment:
+      LLAMA_CACHE: /root/.cache/llama.cpp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 300s
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${LLM_GPU:-0}"]
+              capabilities: [gpu]
+
+  tap:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lrv-tap
+    # The trace file is bind-mounted from the host, so the container has to write
+    # as a uid that owns that directory. Defaults to the usual first login user;
+    # set DOCKER_USER="$(id -u):$(id -g)" in .env if yours differs.
+    user: "${DOCKER_USER:-1000:1000}"
+    command:
+      - tap
+      - --upstream
+      - http://llama:8080
+      - --host
+      - 0.0.0.0
+      - --port
+      - "18900"
+      - --trace
+      - /traces/tap.jsonl
+    ports:
+      - "${TAP_PORT:-18900}:18900"
+    volumes:
+      - ./progress/logs:/traces
+    depends_on:
+      llama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:18900/healthz')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lrv-exporter
+    command:
+      - exporter
+      # The pipeline runs on the host, not in this network.
+      - --pipeline-url
+      - http://host.docker.internal:${PIPELINE_PORT:-18765}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "18901"
+    ports:
+      - "${EXPORTER_PORT:-18901}:18901"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    container_name: lrv-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+      # 2 s turns need finer resolution than the 15 s default scrape implies.
+      - --web.enable-lifecycle
+    ports:
+      - "${PROMETHEUS_PORT:-19090}:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    container_name: lrv-grafana
+    ports:
+      - "${GRAFANA_PORT:-13000}:3000"
+    environment:
+      # A local, unauthenticated dashboard. Do not expose this beyond loopback.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: system
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  web:
+    image: nginx:1.29-alpine
+    container_name: lrv-web
+    ports:
+      - "${WEB_PORT:-18088}:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

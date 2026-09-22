@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Generated prompt audio. Regenerate with scripts/make_prompts.py; the manifest
+# pins the text and checksums, so results stay reproducible without shipping WAVs.
+assets/prompts/*.wav
+assets/prompts-hesitation/*.wav
+
+# Model weights pulled by llama.cpp
+cache/
+
+# Run output. Curated results under results/published/ are committed; everything
+# else is scratch from whatever was last measured.
+results/*
+!results/published/
+progress/logs/
+
+# OS
+.DS_Store
+
+# Local machine configuration. Copy .env.example and edit.
+.env

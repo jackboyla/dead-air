@@ -1,0 +1,22 @@
+# Scrape interval is 5s, not the 15s default. A voice turn lasts about two seconds,
+# so a 15s interval would average away the events this deployment cares about.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: llm-tap
+    static_configs:
+      - targets: ["tap:18900"]
+        labels:
+          component: llm
+
+  - job_name: pipeline
+    static_configs:
+      - targets: ["exporter:18901"]
+        labels:
+          component: pipeline
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

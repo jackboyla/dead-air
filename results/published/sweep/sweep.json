@@ -1,0 +1,38 @@
+[
+  {
+    "concurrency": 1,
+    "turns": 6,
+    "completion_rate": 1.0,
+    "rejected_sessions": 0,
+    "perceived_ttfa_p50_ms": 1048.5,
+    "perceived_ttfa_p95_ms": 1069.8,
+    "realtime_factor_p50": 6.244
+  },
+  {
+    "concurrency": 2,
+    "turns": 12,
+    "completion_rate": 1.0,
+    "rejected_sessions": 0,
+    "perceived_ttfa_p50_ms": 1053.9,
+    "perceived_ttfa_p95_ms": 1099.3,
+    "realtime_factor_p50": 6.145
+  },
+  {
+    "concurrency": 4,
+    "turns": 18,
+    "completion_rate": 1.0,
+    "rejected_sessions": 1,
+    "perceived_ttfa_p50_ms": 1067.7,
+    "perceived_ttfa_p95_ms": 1104.9,
+    "realtime_factor_p50": 5.308
+  },
+  {
+    "concurrency": 6,
+    "turns": 18,
+    "completion_rate": 1.0,
+    "rejected_sessions": 3,
+    "perceived_ttfa_p50_ms": 1062.0,
+    "perceived_ttfa_p95_ms": 1124.5,
+    "realtime_factor_p50": 5.417
+  }
+]

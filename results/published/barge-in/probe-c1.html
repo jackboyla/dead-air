@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barge-in: interrupt 1.2 s into a long reply — local-realtime-voice</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 40px 0 6px; letter-spacing: -0.005em; }
+  .sub { color: var(--text-secondary); margin: 0 0 8px; font-size: 14px; }
+  .note { color: var(--text-muted); font-size: 13px; margin: 0 0 16px; max-width: 62ch; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-top: 12px;
+  }
+  .tiles { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 150px;
+    flex: 1 1 150px;
+  }
+  .tile .k { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .tile .v { font-size: 26px; font-variant-numeric: tabular-nums; margin-top: 4px; letter-spacing: -0.02em; }
+  .tile .d { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 14px; font-size: 13px; color: var(--text-secondary); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--baseline); border-radius: 7px;
+    padding: 7px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.14);
+    font-variant-numeric: tabular-nums; z-index: 40; max-width: 260px;
+  }
+  svg text { font: 12px ui-sans-serif, system-ui, sans-serif; }
+  .axis { fill: var(--text-muted); }
+  .mark { cursor: default; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="viz-root wrap">
+  <h1 id="title"></h1>
+  <p class="sub" id="subtitle"></p>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Where one median turn spends its time</h2>
+  <p class="note">A single representative turn, chosen as the completed turn closest to the
+  median user-perceived latency, so the stages genuinely add up to the total.</p>
+  <div class="legend" id="budget-legend"></div>
+  <div class="card"><div id="budget"></div></div>
+  <details>
+    <summary>Show the same figures as a table</summary>
+    <div class="card"><table id="budget-table"></table></div>
+  </details>
+
+  <h2>Stage latency percentiles</h2>
+  <p class="note">Each stage is summarized independently over every measured turn, so these
+  do not sum to the headline total. Nearest-rank percentiles: every value shown is a
+  latency that actually occurred.</p>
+  <div class="card"><div id="stages"></div></div>
+
+  <h2>Per-turn perceived latency</h2>
+  <p class="note">Every measured turn in run order. Look for drift, which means the
+  deployment is falling behind, and for isolated spikes, which usually mean a stall
+  rather than a slowdown.</p>
+  <div class="card"><div id="turns"></div></div>
+
+  <h2>All measures</h2>
+  <div class="card"><table id="table"></table></div>
+</div>
+<div class="tip" id="tip"></div>
+<script id="payload" type="application/json">{"spec":{"name":"Barge-in: interrupt 1.2 s into a long reply","concurrency":1,"turns":7,"warmup_turns":1,"interval_s":0.0,"barge_in_after_s":1.2,"faults":[],"notes":"Instructions ask for a four-to-five sentence answer so there is speech left to interrupt; the probe starts speaking 1.2 s after the assistant's first audio frame."},"environment":{"host":"radiance-ws","platform":"Linux-7.0.0-30-generic-x86_64-with-glibc2.39","python":"3.11.15","gpus":["NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02","NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02"]},"stats":{"total_turns":7,"completed_turns":2,"failed_turns":0,"timed_out_turns":0,"cancelled_turns":4,"completion_rate":0.2857,"error_counts":{},"stages":[{"name":"vad_eou_lag","label":"VAD end-of-turn","unit":"ms","count":7,"mean":152.0,"min":147.9,"max":155.3,"percentiles":{"50":151.6,"90":155.3,"95":155.3,"99":155.3}},{"name":"asr","label":"ASR","unit":"ms","count":7,"mean":12.4,"min":10.4,"max":14.8,"percentiles":{"50":12.5,"90":14.8,"95":14.8,"99":14.8}},{"name":"llm_ttft","label":"LLM time to first token","unit":"ms","count":6,"mean":789.2,"min":782.5,"max":798.5,"percentiles":{"50":787.1,"90":798.5,"95":798.5,"99":798.5}},{"name":"tts_ttfb","label":"TTS time to first byte","unit":"ms","count":6,"mean":93.7,"min":91.4,"max":102.0,"percentiles":{"50":91.8,"90":102.0,"95":102.0,"99":102.0}}],"headline":[{"name":"ttfa","label":"Time to first audio (server clock)","unit":"ms","count":6,"mean":894.9,"min":889.4,"max":900.9,"percentiles":{"50":893.1,"90":900.9,"95":900.9,"99":900.9}},{"name":"perceived_ttfa","label":"Time to first audio (user clock)","unit":"ms","count":6,"mean":1046.4,"min":1044.1,"max":1049.9,"percentiles":{"50":1044.8,"90":1049.9,"95":1049.9,"99":1049.9}},{"name":"response_total","label":"Full response","unit":"ms","count":6,"mean":1643.8,"min":1408.3,"max":1859.3,"percentiles":{"50":1703.3,"90":1859.3,"95":1859.3,"99":1859.3}},{"name":"barge_in","label":"Barge-in to last audio","unit":"ms","count":6,"mean":305.2,"min":88.5,"max":403.7,"percentiles":{"50":392.8,"90":403.7,"95":403.7,"99":403.7}}],"realtime_factor":{"name":"realtime_factor","label":"Realtime factor","unit":"x","count":6,"mean":6.4,"min":6.0,"max":6.5,"percentiles":{"50":6.5,"90":6.5,"95":6.5,"99":6.5}}},"budget":[{"name":"vad_eou_lag","label":"VAD end-of-turn","ms":151.4161799568683,"share":0.14471451973764576},{"name":"asr","label":"ASR","ms":10.35517593845725,"share":0.009896857212746581},{"name":"llm_ttft","label":"LLM time to first token","ms":792.7902170922607,"share":0.7577014263065638},{"name":"tts_ttfb","label":"TTS time to first byte","ms":91.74794889986515,"share":0.0876871967430439}],"series_light":["#2a78d6","#eb6834","#1baf7a","#eda100"],"series_dark":["#3987e5","#d95926","#199e70","#c98500"],"turns":[{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":1,"response_id":"resp_ead5e80030d3486280120b913cabba1d","status":"cancelled","prompt":"At what temperature does water boil at sea level?","transcript":"At what temperature does water boil at sea level?","response_text":"Water boils at one hundred degrees Celsius, or two hundred degrees Fahrenheit, at standard atmospheric pressure found at sea level. This temperature is a very well-known physical constant used in chemistry and cooking worldwide. Changes in altitude will cause this boiling point to change slightly.","audio_bytes":506880,"audio_duration_ms":10560.0,"errors":[],"latency_ms":{"vad_eou_lag":147.92127697728574,"asr":10.379375889897346,"llm_ttft":798.4726051799953,"tts_ttfb":91.75739879719913,"ttfa":900.6093798670918,"perceived_ttfa":1048.5306568443775,"response_total":1727.0385439042002,"barge_in":403.3077801577747},"realtime_factor":6.459123966939846},{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":2,"response_id":"resp_c2dc81cbf4f743809ab36c588026dd3a","status":"cancelled","prompt":"How many planets are in the solar system?","transcript":"How many planets are in the solar system? How many planets are in the solar system?","response_text":"There are eight planets in our solar system, which are Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. These celestial bodies orbit our sun in predictable paths across the vast expanse of space. Each planet possesses unique characteristics and compositions that make them all fascinating objects of study for astronomers.","audio_bytes":506880,"audio_duration_ms":10560.0,"errors":[],"latency_ms":{"vad_eou_lag":151.62777295336127,"asr":13.426413992419839,"llm_ttft":787.0988179929554,"tts_ttfb":92.6079680211842,"ttfa":893.1332000065595,"perceived_ttfa":1044.7609729599208,"response_total":1859.3093850649893,"barge_in":403.65414693951607},"realtime_factor":5.978874316564969},{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":3,"response_id":"resp_67318c9447d74f41a79eb0c2b96c4187","status":"completed","prompt":"What is the tallest mountain in the world?","transcript":"What is the tallest mountain in the world? What is the tallest mountain in the world?","response_text":"The tallest mountain in the world is Mount Everest. It stands majestically in the Himalayas and is the highest point above sea level on our planet. Its immense height is a wonder of natural geological forces.","audio_bytes":409600,"audio_duration_ms":8533.33,"errors":[],"latency_ms":{"vad_eou_lag":149.046977981925,"asr":12.54401309415698,"llm_ttft":786.3101488910615,"tts_ttfb":102.00105304829776,"ttfa":900.8552150335163,"perceived_ttfa":1049.9021930154413,"response_total":1408.3010950125754,"barge_in":88.49598001688719},"realtime_factor":6.534666170259568},{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":4,"response_id":"resp_075434f2e1184441b69c51de60c42ca0","status":"cancelled","prompt":"Which ocean is the largest?","transcript":"Which ocean is the largest? Which ocean is the largest?","response_text":"The Pacific Ocean is recognized as the largest of all the world's oceans. It covers a vast expanse of the globe and holds the greatest volume of water. This enormous body of water influences global climate and marine life extensively.","audio_bytes":504832,"audio_duration_ms":10517.33,"errors":[],"latency_ms":{"vad_eou_lag":155.28828604146838,"asr":14.324782881885767,"llm_ttft":782.541616121307,"tts_ttfb":92.53546386025846,"ttfa":889.4018628634512,"perceived_ttfa":1044.6901489049196,"response_total":1703.289767028764,"barge_in":392.84260803833604},"realtime_factor":6.531132798436314},{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":5,"response_id":"resp_a73bdf5ed7884707a0ee70039e2cdca4","status":"cancelled","prompt":"Roughly how fast does light travel?","transcript":"Roughly how fast does light travel. Roughly how fast does light travel?","response_text":"Light travels at an incredibly fast speed, approximately 186,282 miles per second in a vacuum. This means that light can cover vast distances across space in a very short amount of time. It is one of the fundamental constants of the physical universe, representing the ultimate speed limit.","audio_bytes":504832,"audio_duration_ms":10517.33,"errors":[],"latency_ms":{"vad_eou_lag":153.46380206756294,"asr":11.03673898614943,"llm_ttft":788.2229050155729,"tts_ttfb":91.42050496302545,"ttfa":890.6801489647478,"perceived_ttfa":1044.1439510323107,"response_total":1705.2506171166897,"barge_in":394.00590606965125},"realtime_factor":6.518375091191669},{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":6,"response_id":"resp_cda1ba6799894551970ec35028ce7d59","status":"completed","prompt":"In what year did humans first land on the moon?","transcript":"In what year did humans first land on the moon? In what year did humans first land on the moon?","response_text":"Humans first landed on the moon in the year 1969. This historic event was achieved by the Apollo 11 mission from the United States. That landing marked a monumental achievement in the history of space exploration.","audio_bytes":424960,"audio_duration_ms":8853.33,"errors":[],"latency_ms":{"vad_eou_lag":151.4161799568683,"asr":10.35517593845725,"llm_ttft":792.7902170922607,"tts_ttfb":91.74794889986515,"ttfa":894.8933419305831,"perceived_ttfa":1046.3095218874514,"response_total":1459.8069221246988,"barge_in":148.6652810126543},"realtime_factor":6.473293181264941},{"session_id":"session_c9f81cd384ac4fe496c1f50340e535b1","turn_index":7,"response_id":null,"status":null,"prompt":null,"transcript":"What do bees make besides honey?","response_text":"","audio_bytes":0,"audio_duration_ms":0.0,"errors":[],"latency_ms":{"vad_eou_lag":155.23346909321845,"asr":14.751006849110126,"llm_ttft":null,"tts_ttfb":null,"ttfa":null,"perceived_ttfa":null,"response_total":null,"barge_in":null},"realtime_factor":null}]}</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("payload").textContent);
+  const tip = document.getElementById("tip");
+  const NS = "http://www.w3.org/2000/svg";
+  const css = (name) => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(name).trim();
+  const SERIES = () => [css("--series-1"), css("--series-2"), css("--series-3"), css("--series-4")];
+
+  const fmt = (v, unit) => {
+    if (v === null || v === undefined || !isFinite(v)) return "—";
+    if (unit === "x") return v.toFixed(2) + "x";
+    return v >= 1000 ? (v / 1000).toFixed(2) + " s" : Math.round(v) + " ms";
+  };
+
+  function el(name, attrs, text) {
+    const node = document.createElementNS(NS, name);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function hover(node, htmlText) {
+    node.addEventListener("mousemove", (e) => {
+      tip.innerHTML = htmlText;
+      tip.style.opacity = "1";
+      const pad = 14;
+      let x = e.clientX + pad, y = e.clientY + pad;
+      const r = tip.getBoundingClientRect();
+      if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - pad;
+      if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - pad;
+      tip.style.left = x + "px";
+      tip.style.top = y + "px";
+    });
+    node.addEventListener("mouseleave", () => { tip.style.opacity = "0"; });
+  }
+
+  // ── Header ─────────────────────────────────────────────────────────
+  document.getElementById("title").textContent = D.spec.name;
+  const gpus = (D.environment.gpus || []).join("; ");
+  document.getElementById("subtitle").textContent =
+    D.spec.concurrency + " concurrent session(s), " + D.spec.turns + " turns each, " +
+    D.spec.warmup_turns + " warmup excluded · " + (D.environment.host || "") +
+    (gpus ? " · " + gpus : "");
+
+  const byName = {};
+  (D.stats.headline || []).concat(D.stats.stages || []).forEach(d => byName[d.name] = d);
+
+  const tiles = [
+    ["Perceived TTFA p50", byName.perceived_ttfa ? fmt(byName.perceived_ttfa.percentiles["50"]) : "—", "end of speech → first audio"],
+    ["Perceived TTFA p95", byName.perceived_ttfa ? fmt(byName.perceived_ttfa.percentiles["95"]) : "—", "tail a user still hears"],
+    ["Completed", (D.stats.completion_rate * 100).toFixed(0) + "%", D.stats.completed_turns + " of " + D.stats.total_turns + " turns"],
+    ["Realtime factor", D.stats.realtime_factor ? fmt(D.stats.realtime_factor.percentiles["50"], "x") : "—", "median; >1.0x sustains speech"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(
+    t => '<div class="tile"><div class="k">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="d">' + t[2] + '</div></div>'
+  ).join("");
+
+  // ── Budget: one stacked horizontal bar, direct-labelled ────────────
+  function drawBudget() {
+    const host = document.getElementById("budget");
+    host.innerHTML = "";
+    const data = D.budget || [];
+    if (!data.length) { host.innerHTML = '<p class="note">No completed turn to decompose.</p>'; return; }
+    const colors = SERIES();
+    const W = host.clientWidth || 880, H = 150;
+    const L = 8, R = 8, barY = 54, barH = 24, GAP = 2;
+    const total = data.reduce((a, b) => a + b.ms, 0);
+    const scale = (W - L - R) / total;
+
+    const svg = el("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H });
+    let x = L;
+    data.forEach((d, i) => {
+      const raw = d.ms * scale;
+      const w = Math.max(2, raw - (i < data.length - 1 ? GAP : 0));
+      // 4px rounded outer ends, square where segments meet.
+      const first = i === 0, last = i === data.length - 1;
+      const r = 4;
+      const path = first || last
+        ? roundedSide(x, barY, w, barH, r, first, last)
+        : rectPath(x, barY, w, barH);
+      const mark = el("path", { d: path, fill: colors[i % 4], class: "mark" });
+      hover(mark, "<b>" + d.label + "</b><br>" + fmt(d.ms) + " · " + Math.round(d.share * 100) + "% of " + fmt(total));
+      svg.appendChild(mark);
+
+      if (raw > 46) {
+        svg.appendChild(el("text", {
+          x: x + w / 2, y: barY - 10, "text-anchor": "middle", class: "axis"
+        }, fmt(d.ms)));
+      }
+      x += raw;
+    });
+    svg.appendChild(el("text", { x: L, y: barY + barH + 22, class: "axis" }, "0"));
+    svg.appendChild(el("text", { x: W - R, y: barY + barH + 22, "text-anchor": "end", class: "axis" },
+      fmt(total) + " to first audio"));
+    host.appendChild(svg);
+
+    document.getElementById("budget-legend").innerHTML = data.map(
+      (d, i) => '<span><i class="swatch" style="background:' + colors[i % 4] + '"></i>' + d.label + " · " + fmt(d.ms) + "</span>"
+    ).join("");
+
+    document.getElementById("budget-table").innerHTML =
+      "<tr><th>Stage</th><th>Time</th><th>Share</th></tr>" +
+      data.map(d => "<tr><td>" + d.label + "</td><td>" + fmt(d.ms) + "</td><td>" + Math.round(d.share * 100) + "%</td></tr>").join("") +
+      "<tr><td><b>Total</b></td><td><b>" + fmt(total) + "</b></td><td></td></tr>";
+  }
+
+  function rectPath(x, y, w, h) {
+    return "M" + x + "," + y + "h" + w + "v" + h + "h" + (-w) + "z";
+  }
+  function roundedSide(x, y, w, h, r, left, right) {
+    r = Math.min(r, w / 2, h / 2);
+    const rl = left ? r : 0, rr = right ? r : 0;
+    return "M" + (x + rl) + "," + y +
+      "h" + (w - rl - rr) +
+      (rr ? "a" + rr + "," + rr + " 0 0 1 " + rr + "," + rr : "") +
+      "v" + (h - 2 * rr) +
+      (rr ? "a" + rr + "," + rr + " 0 0 1 " + (-rr) + "," + rr : "") +
+      "h" + (-(w - rl - rr)) +
+      (rl ? "a" + rl + "," + rl + " 0 0 1 " + (-rl) + "," + (-rl) : "") +
+      "v" + (-(h - 2 * rl)) +
+      (rl ? "a" + rl + "," + rl + " 0 0 1 " + rl + "," + (-rl) : "") + "z";
+  }
+
+  // ── Stage percentiles: grouped horizontal bars ─────────────────────
+  function drawStages() {
+    const host = document.getElementById("stages");
+    host.innerHTML = "";
+    const rows = D.stats.stages || [];
+    if (!rows.length) { host.innerHTML = '<p class="note">No stage data.</p>'; return; }
+    const colors = SERIES();
+    const W = host.clientWidth || 880;
+    const rowH = 46, L = 168, R = 70, H = rows.length * rowH + 30;
+    const max = Math.max.apply(null, rows.map(r => r.percentiles["95"]));
+    const scale = (W - L - R) / (max || 1);
+    const svg = el("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H });
+
+    rows.forEach((row, i) => {
+      const y = i * rowH + 12;
+      svg.appendChild(el("text", { x: L - 12, y: y + 17, "text-anchor": "end", class: "axis" }, row.label));
+      const p50 = row.percentiles["50"] * scale;
+      const p95 = row.percentiles["95"] * scale;
+      // p95 sits behind p50 as a lighter extent; p50 is the solid mark.
+      const back = el("path", { d: roundedSide(L, y + 4, Math.max(2, p95), 22, 4, true, true), fill: colors[i % 4], opacity: "0.26", class: "mark" });
+      hover(back, "<b>" + row.label + " p95</b><br>" + fmt(row.percentiles["95"], row.unit));
+      svg.appendChild(back);
+      const front = el("path", { d: roundedSide(L, y + 4, Math.max(2, p50), 22, 4, true, true), fill: colors[i % 4], class: "mark" });
+      hover(front, "<b>" + row.label + "</b><br>p50 " + fmt(row.percentiles["50"], row.unit) +
+        "<br>p90 " + fmt(row.percentiles["90"], row.unit) +
+        "<br>p95 " + fmt(row.percentiles["95"], row.unit) +
+        "<br>n = " + row.count);
+      svg.appendChild(front);
+      svg.appendChild(el("text", { x: L + Math.max(p95, p50) + 10, y: y + 20, class: "axis" }, fmt(row.percentiles["50"], row.unit)));
+    });
+    svg.appendChild(el("line", { x1: L, y1: 8, x2: L, y2: H - 18, stroke: css("--baseline"), "stroke-width": "1" }));
+    svg.appendChild(el("text", { x: L, y: H - 4, class: "axis" }, "solid = p50, pale = p95"));
+    host.appendChild(svg);
+  }
+
+  // ── Per-turn line ──────────────────────────────────────────────────
+  function drawTurns() {
+    const host = document.getElementById("turns");
+    host.innerHTML = "";
+    const pts = (D.turns || []).map((t, i) => ({ i: i, v: t.latency_ms.perceived_ttfa, t: t }))
+      .filter(p => p.v !== null && p.v !== undefined);
+    if (pts.length < 2) { host.innerHTML = '<p class="note">Not enough completed turns to plot.</p>'; return; }
+    const W = host.clientWidth || 880, H = 220, L = 60, R = 16, T = 14, B = 30;
+    const max = Math.max.apply(null, pts.map(p => p.v)) * 1.1;
+    const xs = (i) => L + (W - L - R) * (i / Math.max(1, pts.length - 1));
+    const ys = (v) => T + (H - T - B) * (1 - v / max);
+    const svg = el("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H });
+
+    for (let g = 0; g <= 4; g++) {
+      const v = max * g / 4, y = ys(v);
+      svg.appendChild(el("line", { x1: L, y1: y, x2: W - R, y2: y, stroke: css("--grid"), "stroke-width": "1" }));
+      svg.appendChild(el("text", { x: L - 10, y: y + 4, "text-anchor": "end", class: "axis" }, fmt(v)));
+    }
+    const d = pts.map((p, i) => (i ? "L" : "M") + xs(p.i) + "," + ys(p.v)).join("");
+    svg.appendChild(el("path", { d: d, fill: "none", stroke: SERIES()[0], "stroke-width": "2", "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    pts.forEach(p => {
+      const c = el("circle", { cx: xs(p.i), cy: ys(p.v), r: "4.5", fill: SERIES()[0], stroke: css("--surface-1"), "stroke-width": "2", class: "mark" });
+      hover(c, "<b>Turn " + (p.i + 1) + "</b><br>perceived " + fmt(p.v) +
+        "<br>ASR " + fmt(p.t.latency_ms.asr) +
+        "<br>LLM " + fmt(p.t.latency_ms.llm_ttft) +
+        "<br>TTS " + fmt(p.t.latency_ms.tts_ttfb));
+      svg.appendChild(c);
+    });
+    svg.appendChild(el("text", { x: L, y: H - 6, class: "axis" }, "turn order →"));
+    host.appendChild(svg);
+  }
+
+  // ── Table ──────────────────────────────────────────────────────────
+  const all = (D.stats.headline || []).concat(D.stats.stages || []);
+  document.getElementById("table").innerHTML =
+    "<tr><th>Measure</th><th>n</th><th>p50</th><th>p90</th><th>p95</th><th>p99</th><th>max</th></tr>" +
+    all.map(d => "<tr><td>" + d.label + "</td><td>" + d.count + "</td>" +
+      ["50", "90", "95", "99"].map(q => "<td>" + fmt(d.percentiles[q], d.unit) + "</td>").join("") +
+      "<td>" + fmt(d.max, d.unit) + "</td></tr>").join("");
+
+  function drawAll() { drawBudget(); drawStages(); drawTurns(); }
+  drawAll();
+  let resizeTimer;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(drawAll, 120); });
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+  }
+})();
+</script>
+</body>
+</html>

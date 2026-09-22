@@ -1,0 +1,80 @@
+{
+  "voice": "af_heart",
+  "rate": 16000,
+  "generator": "kokoro",
+  "note": "Synthesized prompts. Cleaner than microphone speech, so measured ASR latency is a lower bound on what real users would see.",
+  "prompts": [
+    {
+      "name": "capital_france",
+      "file": "capital_france.wav",
+      "text": "What is the capital of France?",
+      "sha256_16": "27edbf07e8787988"
+    },
+    {
+      "name": "water_boil",
+      "file": "water_boil.wav",
+      "text": "At what temperature does water boil at sea level?",
+      "sha256_16": "652342e5dd107b1b"
+    },
+    {
+      "name": "planet_count",
+      "file": "planet_count.wav",
+      "text": "How many planets are in the solar system?",
+      "sha256_16": "d1aab95aeb7ff151"
+    },
+    {
+      "name": "tallest_mountain",
+      "file": "tallest_mountain.wav",
+      "text": "What is the tallest mountain in the world?",
+      "sha256_16": "059f0113b6bb80d2"
+    },
+    {
+      "name": "ocean_largest",
+      "file": "ocean_largest.wav",
+      "text": "Which ocean is the largest?",
+      "sha256_16": "85821bf1bbe98bc4"
+    },
+    {
+      "name": "light_speed",
+      "file": "light_speed.wav",
+      "text": "Roughly how fast does light travel?",
+      "sha256_16": "46b1cbe4b15c5db8"
+    },
+    {
+      "name": "moon_landing",
+      "file": "moon_landing.wav",
+      "text": "In what year did humans first land on the moon?",
+      "sha256_16": "120ed72101166086"
+    },
+    {
+      "name": "bee_product",
+      "file": "bee_product.wav",
+      "text": "What do bees make besides honey?",
+      "sha256_16": "5d9b98cbd837d477"
+    },
+    {
+      "name": "triangle_angles",
+      "file": "triangle_angles.wav",
+      "text": "How many degrees are in a triangle?",
+      "sha256_16": "3c2dd928b09fcfa4"
+    },
+    {
+      "name": "continent_count",
+      "file": "continent_count.wav",
+      "text": "How many continents are there?",
+      "sha256_16": "ffdd3485a1a682aa"
+    },
+    {
+      "name": "dna_stands",
+      "file": "dna_stands.wav",
+      "text": "What does DNA stand for?",
+      "sha256_16": "cacdc958582925ac"
+    },
+    {
+      "name": "red_blue_mix",
+      "file": "red_blue_mix.wav",
+      "text": "What colour do you get when you mix red and blue?",
+      "sha256_16": "eb810e22ddfb9096"
+    }
+  ]
+}

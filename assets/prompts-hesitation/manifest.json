@@ -1,0 +1,50 @@
+{
+  "voice": "af_heart",
+  "rate": 16000,
+  "generator": "kokoro",
+  "note": "Each prompt is one question split by a silent gap, for measuring false endpointing.",
+  "prompts": [
+    {
+      "name": "capital_300",
+      "file": "capital_300.wav",
+      "text": "What is the capital of France?",
+      "gap_ms": 300,
+      "sha256_16": "577dd4fcadf8ddc3"
+    },
+    {
+      "name": "boil_500",
+      "file": "boil_500.wav",
+      "text": "At what temperature does water boil at sea level?",
+      "gap_ms": 500,
+      "sha256_16": "4aea8e6e843559af"
+    },
+    {
+      "name": "planets_700",
+      "file": "planets_700.wav",
+      "text": "How many planets are in the solar system?",
+      "gap_ms": 700,
+      "sha256_16": "2627ba16608c8052"
+    },
+    {
+      "name": "mountain_900",
+      "file": "mountain_900.wav",
+      "text": "What is the tallest mountain in the world?",
+      "gap_ms": 900,
+      "sha256_16": "0d3edf279b50859b"
+    },
+    {
+      "name": "ocean_400",
+      "file": "ocean_400.wav",
+      "text": "Which ocean is the largest?",
+      "gap_ms": 400,
+      "sha256_16": "f49f1d33ea076489"
+    },
+    {
+      "name": "moon_600",
+      "file": "moon_600.wav",
+      "text": "In what year did humans first land on the moon?",
+      "gap_ms": 600,
+      "sha256_16": "92daa1df3aed35f7"
+    }
+  ]
+}

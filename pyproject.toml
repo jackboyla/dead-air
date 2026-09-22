@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-realtime-voice"
+version = "0.1.0"
+description = "A fully local OpenAI-Realtime voice agent, with its latency budget measured"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Jack Boylan", email = "boylan.jack@gmail.com" },
+]
+keywords = ["voice-agents", "openai-realtime", "speech-to-speech", "latency", "llama.cpp", "benchmark"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Benchmark",
+]
+dependencies = [
+    "httpx>=0.28.0",
+    "numpy>=1.26.0",
+    "prometheus-client>=0.20.0",
+    "pydantic>=2.0",
+    "soxr>=0.3.2",
+    "rich>=13.0",
+    "starlette>=0.40.0",
+    "uvicorn>=0.30.0",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+webrtc = [
+    "aiortc>=1.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jackboyla/local-realtime-voice"
+Repository = "https://github.com/jackboyla/local-realtime-voice"
+Issues = "https://github.com/jackboyla/local-realtime-voice/issues"
+
+[project.scripts]
+localvoice = "localvoice.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "types-requests",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.uv]
+package = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["localvoice*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+localvoice = ["py.typed", "assets/*.json"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_configs = true
+check_untyped_defs = false

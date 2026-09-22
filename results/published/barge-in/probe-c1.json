@@ -1,0 +1,219 @@
+{
+  "spec": {
+    "name": "Barge-in: interrupt 1.2 s into a long reply",
+    "concurrency": 1,
+    "turns": 7,
+    "warmup_turns": 1,
+    "interval_s": 0.0,
+    "barge_in_after_s": 1.2,
+    "faults": [],
+    "notes": "Instructions ask for a four-to-five sentence answer so there is speech left to interrupt; the probe starts speaking 1.2 s after the assistant's first audio frame."
+  },
+  "started_at": "2026-09-22T09:10:09.357771+00:00",
+  "duration_s": 45.63,
+  "environment": {
+    "host": "radiance-ws",
+    "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "gpus": [
+      "NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02",
+      "NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02"
+    ]
+  },
+  "rejected_sessions": 0,
+  "sessions": [
+    {
+      "session_index": 0,
+      "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+      "connect_ms": 6.1342730186879635,
+      "rejected": null,
+      "error": null,
+      "turns": [
+        {
+          "session_id": "probe-0",
+          "turn_index": 0,
+          "response_id": "resp_d535bd2e7f2949a1bd9c74021bd8d933",
+          "status": "completed",
+          "prompt": "What is the capital of France?",
+          "transcript": "What is the capital of France?",
+          "response_text": "The capital of France is Paris, a beautiful city known throughout the world for its art, fashion, and culture. It is a major global center for tourism and has a rich history that stretches back centuries. Many people are drawn to the iconic landmarks found within its charming streets.",
+          "audio_bytes": 540672,
+          "audio_duration_ms": 11264.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 152.55127102136612,
+            "asr": 12.649872107431293,
+            "llm_ttft": 790.625044843182,
+            "tts_ttfb": 101.7812320496887,
+            "ttfa": 905.056149000302,
+            "perceived_ttfa": 1057.607420021668,
+            "response_total": 1830.2163819316775,
+            "barge_in": null
+          },
+          "realtime_factor": 6.5186676594091795
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 1,
+          "response_id": "resp_ead5e80030d3486280120b913cabba1d",
+          "status": "cancelled",
+          "prompt": "At what temperature does water boil at sea level?",
+          "transcript": "At what temperature does water boil at sea level?",
+          "response_text": "Water boils at one hundred degrees Celsius, or two hundred degrees Fahrenheit, at standard atmospheric pressure found at sea level. This temperature is a very well-known physical constant used in chemistry and cooking worldwide. Changes in altitude will cause this boiling point to change slightly.",
+          "audio_bytes": 506880,
+          "audio_duration_ms": 10560.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 147.92127697728574,
+            "asr": 10.379375889897346,
+            "llm_ttft": 798.4726051799953,
+            "tts_ttfb": 91.75739879719913,
+            "ttfa": 900.6093798670918,
+            "perceived_ttfa": 1048.5306568443775,
+            "response_total": 1727.0385439042002,
+            "barge_in": 403.3077801577747
+          },
+          "realtime_factor": 6.459123966939846
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 2,
+          "response_id": "resp_c2dc81cbf4f743809ab36c588026dd3a",
+          "status": "cancelled",
+          "prompt": "How many planets are in the solar system?",
+          "transcript": "How many planets are in the solar system? How many planets are in the solar system?",
+          "response_text": "There are eight planets in our solar system, which are Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. These celestial bodies orbit our sun in predictable paths across the vast expanse of space. Each planet possesses unique characteristics and compositions that make them all fascinating objects of study for astronomers.",
+          "audio_bytes": 506880,
+          "audio_duration_ms": 10560.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 151.62777295336127,
+            "asr": 13.426413992419839,
+            "llm_ttft": 787.0988179929554,
+            "tts_ttfb": 92.6079680211842,
+            "ttfa": 893.1332000065595,
+            "perceived_ttfa": 1044.7609729599208,
+            "response_total": 1859.3093850649893,
+            "barge_in": 403.65414693951607
+          },
+          "realtime_factor": 5.978874316564969
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 3,
+          "response_id": "resp_67318c9447d74f41a79eb0c2b96c4187",
+          "status": "completed",
+          "prompt": "What is the tallest mountain in the world?",
+          "transcript": "What is the tallest mountain in the world? What is the tallest mountain in the world?",
+          "response_text": "The tallest mountain in the world is Mount Everest. It stands majestically in the Himalayas and is the highest point above sea level on our planet. Its immense height is a wonder of natural geological forces.",
+          "audio_bytes": 409600,
+          "audio_duration_ms": 8533.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 149.046977981925,
+            "asr": 12.54401309415698,
+            "llm_ttft": 786.3101488910615,
+            "tts_ttfb": 102.00105304829776,
+            "ttfa": 900.8552150335163,
+            "perceived_ttfa": 1049.9021930154413,
+            "response_total": 1408.3010950125754,
+            "barge_in": 88.49598001688719
+          },
+          "realtime_factor": 6.534666170259568
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 4,
+          "response_id": "resp_075434f2e1184441b69c51de60c42ca0",
+          "status": "cancelled",
+          "prompt": "Which ocean is the largest?",
+          "transcript": "Which ocean is the largest? Which ocean is the largest?",
+          "response_text": "The Pacific Ocean is recognized as the largest of all the world's oceans. It covers a vast expanse of the globe and holds the greatest volume of water. This enormous body of water influences global climate and marine life extensively.",
+          "audio_bytes": 504832,
+          "audio_duration_ms": 10517.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 155.28828604146838,
+            "asr": 14.324782881885767,
+            "llm_ttft": 782.541616121307,
+            "tts_ttfb": 92.53546386025846,
+            "ttfa": 889.4018628634512,
+            "perceived_ttfa": 1044.6901489049196,
+            "response_total": 1703.289767028764,
+            "barge_in": 392.84260803833604
+          },
+          "realtime_factor": 6.531132798436314
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 5,
+          "response_id": "resp_a73bdf5ed7884707a0ee70039e2cdca4",
+          "status": "cancelled",
+          "prompt": "Roughly how fast does light travel?",
+          "transcript": "Roughly how fast does light travel. Roughly how fast does light travel?",
+          "response_text": "Light travels at an incredibly fast speed, approximately 186,282 miles per second in a vacuum. This means that light can cover vast distances across space in a very short amount of time. It is one of the fundamental constants of the physical universe, representing the ultimate speed limit.",
+          "audio_bytes": 504832,
+          "audio_duration_ms": 10517.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 153.46380206756294,
+            "asr": 11.03673898614943,
+            "llm_ttft": 788.2229050155729,
+            "tts_ttfb": 91.42050496302545,
+            "ttfa": 890.6801489647478,
+            "perceived_ttfa": 1044.1439510323107,
+            "response_total": 1705.2506171166897,
+            "barge_in": 394.00590606965125
+          },
+          "realtime_factor": 6.518375091191669
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 6,
+          "response_id": "resp_cda1ba6799894551970ec35028ce7d59",
+          "status": "completed",
+          "prompt": "In what year did humans first land on the moon?",
+          "transcript": "In what year did humans first land on the moon? In what year did humans first land on the moon?",
+          "response_text": "Humans first landed on the moon in the year 1969. This historic event was achieved by the Apollo 11 mission from the United States. That landing marked a monumental achievement in the history of space exploration.",
+          "audio_bytes": 424960,
+          "audio_duration_ms": 8853.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 151.4161799568683,
+            "asr": 10.35517593845725,
+            "llm_ttft": 792.7902170922607,
+            "tts_ttfb": 91.74794889986515,
+            "ttfa": 894.8933419305831,
+            "perceived_ttfa": 1046.3095218874514,
+            "response_total": 1459.8069221246988,
+            "barge_in": 148.6652810126543
+          },
+          "realtime_factor": 6.473293181264941
+        },
+        {
+          "session_id": "session_c9f81cd384ac4fe496c1f50340e535b1",
+          "turn_index": 7,
+          "response_id": null,
+          "status": null,
+          "prompt": null,
+          "transcript": "What do bees make besides honey?",
+          "response_text": "",
+          "audio_bytes": 0,
+          "audio_duration_ms": 0.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 155.23346909321845,
+            "asr": 14.751006849110126,
+            "llm_ttft": null,
+            "tts_ttfb": null,
+            "ttfa": null,
+            "perceived_ttfa": null,
+            "response_total": null,
+            "barge_in": null
+          },
+          "realtime_factor": null
+        }
+      ]
+    }
+  ]
+}

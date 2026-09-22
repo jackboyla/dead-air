@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>concurrency — local-realtime-voice</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 40px 0 6px; letter-spacing: -0.005em; }
+  .sub { color: var(--text-secondary); margin: 0 0 8px; font-size: 14px; }
+  .note { color: var(--text-muted); font-size: 13px; margin: 0 0 16px; max-width: 62ch; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-top: 12px;
+  }
+  .tiles { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 150px;
+    flex: 1 1 150px;
+  }
+  .tile .k { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .tile .v { font-size: 26px; font-variant-numeric: tabular-nums; margin-top: 4px; letter-spacing: -0.02em; }
+  .tile .d { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 14px; font-size: 13px; color: var(--text-secondary); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--baseline); border-radius: 7px;
+    padding: 7px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.14);
+    font-variant-numeric: tabular-nums; z-index: 40; max-width: 260px;
+  }
+  svg text { font: 12px ui-sans-serif, system-ui, sans-serif; }
+  .axis { fill: var(--text-muted); }
+  .mark { cursor: default; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="viz-root wrap">
+  <h1 id="title"></h1>
+  <p class="sub" id="subtitle"></p>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Where one median turn spends its time</h2>
+  <p class="note">A single representative turn, chosen as the completed turn closest to the
+  median user-perceived latency, so the stages genuinely add up to the total.</p>
+  <div class="legend" id="budget-legend"></div>
+  <div class="card"><div id="budget"></div></div>
+  <details>
+    <summary>Show the same figures as a table</summary>
+    <div class="card"><table id="budget-table"></table></div>
+  </details>
+
+  <h2>Stage latency percentiles</h2>
+  <p class="note">Each stage is summarized independently over every measured turn, so these
+  do not sum to the headline total. Nearest-rank percentiles: every value shown is a
+  latency that actually occurred.</p>
+  <div class="card"><div id="stages"></div></div>
+
+  <h2>Per-turn perceived latency</h2>
+  <p class="note">Every measured turn in run order. Look for drift, which means the
+  deployment is falling behind, and for isolated spikes, which usually mean a stall
+  rather than a slowdown.</p>
+  <div class="card"><div id="turns"></div></div>
+
+  <h2>All measures</h2>
+  <div class="card"><table id="table"></table></div>
+</div>
+<div class="tip" id="tip"></div>
+<script id="payload" type="application/json">{"spec":{"name":"concurrency","concurrency":1,"turns":7,"warmup_turns":1,"interval_s":0.0,"barge_in_after_s":null,"faults":[],"notes":""},"environment":{"host":"radiance-ws","platform":"Linux-7.0.0-30-generic-x86_64-with-glibc2.39","python":"3.11.15","gpus":["NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02","NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02"]},"stats":{"total_turns":6,"completed_turns":6,"failed_turns":0,"timed_out_turns":0,"cancelled_turns":0,"completion_rate":1.0,"error_counts":{},"stages":[{"name":"vad_eou_lag","label":"VAD end-of-turn","unit":"ms","count":6,"mean":160.2,"min":149.6,"max":174.0,"percentiles":{"50":154.7,"90":174.0,"95":174.0,"99":174.0}},{"name":"asr","label":"ASR","unit":"ms","count":6,"mean":15.7,"min":10.9,"max":24.3,"percentiles":{"50":15.2,"90":24.3,"95":24.3,"99":24.3}},{"name":"llm_ttft","label":"LLM time to first token","unit":"ms","count":6,"mean":784.9,"min":779.1,"max":791.7,"percentiles":{"50":783.2,"90":791.7,"95":791.7,"99":791.7}},{"name":"tts_ttfb","label":"TTS time to first byte","unit":"ms","count":6,"mean":93.8,"min":91.4,"max":102.2,"percentiles":{"50":91.8,"90":102.2,"95":102.2,"99":102.2}}],"headline":[{"name":"ttfa","label":"Time to first audio (server clock)","unit":"ms","count":6,"mean":894.4,"min":891.3,"max":898.9,"percentiles":{"50":892.1,"90":898.9,"95":898.9,"99":898.9}},{"name":"perceived_ttfa","label":"Time to first audio (user clock)","unit":"ms","count":6,"mean":1054.6,"min":1044.8,"max":1069.8,"percentiles":{"50":1048.5,"90":1069.8,"95":1069.8,"99":1069.8}},{"name":"response_total","label":"Full response","unit":"ms","count":6,"mean":429.6,"min":331.3,"max":592.0,"percentiles":{"50":406.2,"90":592.0,"95":592.0,"99":592.0}}],"realtime_factor":{"name":"realtime_factor","label":"Realtime factor","unit":"x","count":6,"mean":6.2,"min":6.1,"max":6.4,"percentiles":{"50":6.2,"90":6.4,"95":6.4,"99":6.4}}},"budget":[{"name":"vad_eou_lag","label":"VAD end-of-turn","ms":149.57965002395213,"share":0.1426629809215758},{"name":"asr","label":"ASR","ms":24.327333085238934,"share":0.023202419949882987},{"name":"llm_ttft","label":"LLM time to first token","ms":783.173652831465,"share":0.7469591476800812},{"name":"tts_ttfb","label":"TTS time to first byte","ms":91.40194207429886,"share":0.08717545144845998}],"series_light":["#2a78d6","#eb6834","#1baf7a","#eda100"],"series_dark":["#3987e5","#d95926","#199e70","#c98500"],"turns":[{"session_id":"session_e6c167345ccf4559ad74efc9903a64d9","turn_index":1,"response_id":"resp_a36c9eac23b64b9ebff26b5884e20d0c","status":"completed","prompt":"At what temperature does water boil at sea level?","transcript":"At what temperature does water boil at sea level?","response_text":"Water boils at 100 degrees Celsius at sea level.","audio_bytes":102400,"audio_duration_ms":2133.33,"errors":[],"latency_ms":{"vad_eou_lag":155.53854196332395,"asr":12.664821930229664,"llm_ttft":787.6169111113995,"tts_ttfb":91.83332789689302,"ttfa":892.1150609385222,"perceived_ttfa":1047.6536029018462,"response_total":437.4535100068897,"barge_in":null},"realtime_factor":6.18245456299095},{"session_id":"session_e6c167345ccf4559ad74efc9903a64d9","turn_index":2,"response_id":"resp_e5abb821c21147e593b09a170574c53e","status":"completed","prompt":"How many planets are in the solar system?","transcript":"How many planets are in the solar system?","response_text":"There are eight planets in our solar system.","audio_bytes":69632,"audio_duration_ms":1450.67,"errors":[],"latency_ms":{"vad_eou_lag":149.57965002395213,"asr":24.327333085238934,"llm_ttft":783.173652831465,"tts_ttfb":91.40194207429886,"ttfa":898.9029279910028,"perceived_ttfa":1048.482578014955,"response_total":331.323673017323,"barge_in":null},"realtime_factor":6.057819957939901},{"session_id":"session_e6c167345ccf4559ad74efc9903a64d9","turn_index":3,"response_id":"resp_e25522fcdfd24c3d909fe348225dd8e9","status":"completed","prompt":"What is the tallest mountain in the world?","transcript":"What is the tallest mountain in the world?","response_text":"The tallest mountain in the world is Mount Everest.","audio_bytes":92160,"audio_duration_ms":1920.0,"errors":[],"latency_ms":{"vad_eou_lag":154.74298503249884,"asr":15.258535044267774,"llm_ttft":779.1184820234776,"tts_ttfb":102.15205093845725,"ttfa":896.5290680062026,"perceived_ttfa":1051.2720530387014,"response_total":406.2129680532962,"barge_in":null},"realtime_factor":6.324279799606908},{"session_id":"session_e6c167345ccf4559ad74efc9903a64d9","turn_index":4,"response_id":"resp_4451d42dbf764d708e850b68724b8128","status":"completed","prompt":"Which ocean is the largest?","transcript":"Which ocean is the largest?","response_text":"The Pacific Ocean is the largest ocean.","audio_bytes":74752,"audio_duration_ms":1557.33,"errors":[],"latency_ms":{"vad_eou_lag":173.99017605930567,"asr":10.89933910407126,"llm_ttft":791.6953829117119,"tts_ttfb":93.22834992781281,"ttfa":895.823071943596,"perceived_ttfa":1069.8132480029017,"response_total":342.98784495331347,"barge_in":null},"realtime_factor":6.243937425396847},{"session_id":"session_e6c167345ccf4559ad74efc9903a64d9","turn_index":5,"response_id":"resp_122acd526689431992b857ee5c5b1062","status":"completed","prompt":"Roughly how fast does light travel?","transcript":"Roughly how fast does light travel?","response_text":"Light travels at a speed of approximately 300,000 kilometers per second.","audio_bytes":153600,"audio_duration_ms":3200.0,"errors":[],"latency_ms":{"vad_eou_lag":173.81141684018075,"asr":15.157235087826848,"llm_ttft":784.7276099491864,"tts_ttfb":91.58083493821323,"ttfa":891.4656799752265,"perceived_ttfa":1065.2770968154073,"response_total":591.9506868813187,"barge_in":null},"realtime_factor":6.399389432510545},{"session_id":"session_e6c167345ccf4559ad74efc9903a64d9","turn_index":6,"response_id":"resp_ddff4b9736334adeba542fddab52b154","status":"completed","prompt":"In what year did humans first land on the moon?","transcript":"In what year did humans first land on the moon?","response_text":"Humans first landed on the moon in 1969.","audio_bytes":112640,"audio_duration_ms":2346.67,"errors":[],"latency_ms":{"vad_eou_lag":153.5376498941332,"asr":15.716139925643802,"llm_ttft":783.1709731835872,"tts_ttfb":92.40650478750467,"ttfa":891.2936178967357,"perceived_ttfa":1044.8312677908689,"response_total":467.7410169970244,"barge_in":null},"realtime_factor":6.259494613067537}]}</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("payload").textContent);
+  const tip = document.getElementById("tip");
+  const NS = "http://www.w3.org/2000/svg";
+  const css = (name) => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(name).trim();
+  const SERIES = () => [css("--series-1"), css("--series-2"), css("--series-3"), css("--series-4")];
+
+  const fmt = (v, unit) => {
+    if (v === null || v === undefined || !isFinite(v)) return "—";
+    if (unit === "x") return v.toFixed(2) + "x";
+    return v >= 1000 ? (v / 1000).toFixed(2) + " s" : Math.round(v) + " ms";
+  };
+
+  function el(name, attrs, text) {
+    const node = document.createElementNS(NS, name);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function hover(node, htmlText) {
+    node.addEventListener("mousemove", (e) => {
+      tip.innerHTML = htmlText;
+      tip.style.opacity = "1";
+      const pad = 14;
+      let x = e.clientX + pad, y = e.clientY + pad;
+      const r = tip.getBoundingClientRect();
+      if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - pad;
+      if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - pad;
+      tip.style.left = x + "px";
+      tip.style.top = y + "px";
+    });
+    node.addEventListener("mouseleave", () => { tip.style.opacity = "0"; });
+  }
+
+  // ── Header ─────────────────────────────────────────────────────────
+  document.getElementById("title").textContent = D.spec.name;
+  const gpus = (D.environment.gpus || []).join("; ");
+  document.getElementById("subtitle").textContent =
+    D.spec.concurrency + " concurrent session(s), " + D.spec.turns + " turns each, " +
+    D.spec.warmup_turns + " warmup excluded · " + (D.environment.host || "") +
+    (gpus ? " · " + gpus : "");
+
+  const byName = {};
+  (D.stats.headline || []).concat(D.stats.stages || []).forEach(d => byName[d.name] = d);
+
+  const tiles = [
+    ["Perceived TTFA p50", byName.perceived_ttfa ? fmt(byName.perceived_ttfa.percentiles["50"]) : "—", "end of speech → first audio"],
+    ["Perceived TTFA p95", byName.perceived_ttfa ? fmt(byName.perceived_ttfa.percentiles["95"]) : "—", "tail a user still hears"],
+    ["Completed", (D.stats.completion_rate * 100).toFixed(0) + "%", D.stats.completed_turns + " of " + D.stats.total_turns + " turns"],
+    ["Realtime factor", D.stats.realtime_factor ? fmt(D.stats.realtime_factor.percentiles["50"], "x") : "—", "median; >1.0x sustains speech"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(
+    t => '<div class="tile"><div class="k">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="d">' + t[2] + '</div></div>'
+  ).join("");
+
+  // ── Budget: one stacked horizontal bar, direct-labelled ────────────
+  function drawBudget() {
+    const host = document.getElementById("budget");
+    host.innerHTML = "";
+    const data = D.budget || [];
+    if (!data.length) { host.innerHTML = '<p class="note">No completed turn to decompose.</p>'; return; }
+    const colors = SERIES();
+    const W = host.clientWidth || 880, H = 150;
+    const L = 8, R = 8, barY = 54, barH = 24, GAP = 2;
+    const total = data.reduce((a, b) => a + b.ms, 0);
+    const scale = (W - L - R) / total;
+
+    const svg = el("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H });
+    let x = L;
+    data.forEach((d, i) => {
+      const raw = d.ms * scale;
+      const w = Math.max(2, raw - (i < data.length - 1 ? GAP : 0));
+      // 4px rounded outer ends, square where segments meet.
+      const first = i === 0, last = i === data.length - 1;
+      const r = 4;
+      const path = first || last
+        ? roundedSide(x, barY, w, barH, r, first, last)
+        : rectPath(x, barY, w, barH);
+      const mark = el("path", { d: path, fill: colors[i % 4], class: "mark" });
+      hover(mark, "<b>" + d.label + "</b><br>" + fmt(d.ms) + " · " + Math.round(d.share * 100) + "% of " + fmt(total));
+      svg.appendChild(mark);
+
+      if (raw > 46) {
+        svg.appendChild(el("text", {
+          x: x + w / 2, y: barY - 10, "text-anchor": "middle", class: "axis"
+        }, fmt(d.ms)));
+      }
+      x += raw;
+    });
+    svg.appendChild(el("text", { x: L, y: barY + barH + 22, class: "axis" }, "0"));
+    svg.appendChild(el("text", { x: W - R, y: barY + barH + 22, "text-anchor": "end", class: "axis" },
+      fmt(total) + " to first audio"));
+    host.appendChild(svg);
+
+    document.getElementById("budget-legend").innerHTML = data.map(
+      (d, i) => '<span><i class="swatch" style="background:' + colors[i % 4] + '"></i>' + d.label + " · " + fmt(d.ms) + "</span>"
+    ).join("");
+
+    document.getElementById("budget-table").innerHTML =
+      "<tr><th>Stage</th><th>Time</th><th>Share</th></tr>" +
+      data.map(d => "<tr><td>" + d.label + "</td><td>" + fmt(d.ms) + "</td><td>" + Math.round(d.share * 100) + "%</td></tr>").join("") +
+      "<tr><td><b>Total</b></td><td><b>" + fmt(total) + "</b></td><td></td></tr>";
+  }
+
+  function rectPath(x, y, w, h) {
+    return "M" + x + "," + y + "h" + w + "v" + h + "h" + (-w) + "z";
+  }
+  function roundedSide(x, y, w, h, r, left, right) {
+    r = Math.min(r, w / 2, h / 2);
+    const rl = left ? r : 0, rr = right ? r : 0;
+    return "M" + (x + rl) + "," + y +
+      "h" + (w - rl - rr) +
+      (rr ? "a" + rr + "," + rr + " 0 0 1 " + rr + "," + rr : "") +
+      "v" + (h - 2 * rr) +
+      (rr ? "a" + rr + "," + rr + " 0 0 1 " + (-rr) + "," + rr : "") +
+      "h" + (-(w - rl - rr)) +
+      (rl ? "a" + rl + "," + rl + " 0 0 1 " + (-rl) + "," + (-rl) : "") +
+      "v" + (-(h - 2 * rl)) +
+      (rl ? "a" + rl + "," + rl + " 0 0 1 " + rl + "," + (-rl) : "") + "z";
+  }
+
+  // ── Stage percentiles: grouped horizontal bars ─────────────────────
+  function drawStages() {
+    const host = document.getElementById("stages");
+    host.innerHTML = "";
+    const rows = D.stats.stages || [];
+    if (!rows.length) { host.innerHTML = '<p class="note">No stage data.</p>'; return; }
+    const colors = SERIES();
+    const W = host.clientWidth || 880;
+    const rowH = 46, L = 168, R = 70, H = rows.length * rowH + 30;
+    const max = Math.max.apply(null, rows.map(r => r.percentiles["95"]));
+    const scale = (W - L - R) / (max || 1);
+    const svg = el("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H });
+
+    rows.forEach((row, i) => {
+      const y = i * rowH + 12;
+      svg.appendChild(el("text", { x: L - 12, y: y + 17, "text-anchor": "end", class: "axis" }, row.label));
+      const p50 = row.percentiles["50"] * scale;
+      const p95 = row.percentiles["95"] * scale;
+      // p95 sits behind p50 as a lighter extent; p50 is the solid mark.
+      const back = el("path", { d: roundedSide(L, y + 4, Math.max(2, p95), 22, 4, true, true), fill: colors[i % 4], opacity: "0.26", class: "mark" });
+      hover(back, "<b>" + row.label + " p95</b><br>" + fmt(row.percentiles["95"], row.unit));
+      svg.appendChild(back);
+      const front = el("path", { d: roundedSide(L, y + 4, Math.max(2, p50), 22, 4, true, true), fill: colors[i % 4], class: "mark" });
+      hover(front, "<b>" + row.label + "</b><br>p50 " + fmt(row.percentiles["50"], row.unit) +
+        "<br>p90 " + fmt(row.percentiles["90"], row.unit) +
+        "<br>p95 " + fmt(row.percentiles["95"], row.unit) +
+        "<br>n = " + row.count);
+      svg.appendChild(front);
+      svg.appendChild(el("text", { x: L + Math.max(p95, p50) + 10, y: y + 20, class: "axis" }, fmt(row.percentiles["50"], row.unit)));
+    });
+    svg.appendChild(el("line", { x1: L, y1: 8, x2: L, y2: H - 18, stroke: css("--baseline"), "stroke-width": "1" }));
+    svg.appendChild(el("text", { x: L, y: H - 4, class: "axis" }, "solid = p50, pale = p95"));
+    host.appendChild(svg);
+  }
+
+  // ── Per-turn line ──────────────────────────────────────────────────
+  function drawTurns() {
+    const host = document.getElementById("turns");
+    host.innerHTML = "";
+    const pts = (D.turns || []).map((t, i) => ({ i: i, v: t.latency_ms.perceived_ttfa, t: t }))
+      .filter(p => p.v !== null && p.v !== undefined);
+    if (pts.length < 2) { host.innerHTML = '<p class="note">Not enough completed turns to plot.</p>'; return; }
+    const W = host.clientWidth || 880, H = 220, L = 60, R = 16, T = 14, B = 30;
+    const max = Math.max.apply(null, pts.map(p => p.v)) * 1.1;
+    const xs = (i) => L + (W - L - R) * (i / Math.max(1, pts.length - 1));
+    const ys = (v) => T + (H - T - B) * (1 - v / max);
+    const svg = el("svg", { width: "100%", height: H, viewBox: "0 0 " + W + " " + H });
+
+    for (let g = 0; g <= 4; g++) {
+      const v = max * g / 4, y = ys(v);
+      svg.appendChild(el("line", { x1: L, y1: y, x2: W - R, y2: y, stroke: css("--grid"), "stroke-width": "1" }));
+      svg.appendChild(el("text", { x: L - 10, y: y + 4, "text-anchor": "end", class: "axis" }, fmt(v)));
+    }
+    const d = pts.map((p, i) => (i ? "L" : "M") + xs(p.i) + "," + ys(p.v)).join("");
+    svg.appendChild(el("path", { d: d, fill: "none", stroke: SERIES()[0], "stroke-width": "2", "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    pts.forEach(p => {
+      const c = el("circle", { cx: xs(p.i), cy: ys(p.v), r: "4.5", fill: SERIES()[0], stroke: css("--surface-1"), "stroke-width": "2", class: "mark" });
+      hover(c, "<b>Turn " + (p.i + 1) + "</b><br>perceived " + fmt(p.v) +
+        "<br>ASR " + fmt(p.t.latency_ms.asr) +
+        "<br>LLM " + fmt(p.t.latency_ms.llm_ttft) +
+        "<br>TTS " + fmt(p.t.latency_ms.tts_ttfb));
+      svg.appendChild(c);
+    });
+    svg.appendChild(el("text", { x: L, y: H - 6, class: "axis" }, "turn order →"));
+    host.appendChild(svg);
+  }
+
+  // ── Table ──────────────────────────────────────────────────────────
+  const all = (D.stats.headline || []).concat(D.stats.stages || []);
+  document.getElementById("table").innerHTML =
+    "<tr><th>Measure</th><th>n</th><th>p50</th><th>p90</th><th>p95</th><th>p99</th><th>max</th></tr>" +
+    all.map(d => "<tr><td>" + d.label + "</td><td>" + d.count + "</td>" +
+      ["50", "90", "95", "99"].map(q => "<td>" + fmt(d.percentiles[q], d.unit) + "</td>").join("") +
+      "<td>" + fmt(d.max, d.unit) + "</td></tr>").join("");
+
+  function drawAll() { drawBudget(); drawStages(); drawTurns(); }
+  drawAll();
+  let resizeTimer;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(drawAll, 120); });
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+  }
+})();
+</script>
+</body>
+</html>

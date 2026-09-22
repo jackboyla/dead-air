@@ -1,0 +1,139 @@
+{
+  "label": "reopen-200ms",
+  "url": "ws://127.0.0.1:18765/v1/realtime",
+  "prompts": 6,
+  "trials": 12,
+  "interrupted": 9,
+  "interruption_rate": 0.75,
+  "rows": [
+    {
+      "repeat": 0,
+      "prompt": "capital_300",
+      "text": "What is the capital of France?",
+      "responses": 2,
+      "transcripts": [
+        "What is the capital?",
+        "Of France,"
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 0,
+      "prompt": "boil_500",
+      "text": "At what temperature does water boil at sea level?",
+      "responses": 2,
+      "transcripts": [
+        "At what temperature does water",
+        "Boil at sea level."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 0,
+      "prompt": "planets_700",
+      "text": "How many planets are in the solar system?",
+      "responses": 2,
+      "transcripts": [
+        "How many planets are?",
+        "In the solar system."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 0,
+      "prompt": "mountain_900",
+      "text": "What is the tallest mountain in the world?",
+      "responses": 2,
+      "transcripts": [
+        "What is the tallest mountain?",
+        "In the world."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 0,
+      "prompt": "ocean_400",
+      "text": "Which ocean is the largest?",
+      "responses": 1,
+      "transcripts": [
+        "Which ocean is the largest?"
+      ],
+      "interrupted": false
+    },
+    {
+      "repeat": 0,
+      "prompt": "moon_600",
+      "text": "In what year did humans first land on the moon?",
+      "responses": 2,
+      "transcripts": [
+        "In what year did humans",
+        "First land on the Moon."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 1,
+      "prompt": "capital_300",
+      "text": "What is the capital of France?",
+      "responses": 1,
+      "transcripts": [
+        "What is the capital? Of France?"
+      ],
+      "interrupted": false
+    },
+    {
+      "repeat": 1,
+      "prompt": "boil_500",
+      "text": "At what temperature does water boil at sea level?",
+      "responses": 2,
+      "transcripts": [
+        "At what temperature does water",
+        "Boil at sea level."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 1,
+      "prompt": "planets_700",
+      "text": "How many planets are in the solar system?",
+      "responses": 2,
+      "transcripts": [
+        "How many planets are?",
+        "In the solar system."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 1,
+      "prompt": "mountain_900",
+      "text": "What is the tallest mountain in the world?",
+      "responses": 2,
+      "transcripts": [
+        "What is the tallest mountain?",
+        "In the world."
+      ],
+      "interrupted": true
+    },
+    {
+      "repeat": 1,
+      "prompt": "ocean_400",
+      "text": "Which ocean is the largest?",
+      "responses": 1,
+      "transcripts": [
+        "Which ocean is the largest?"
+      ],
+      "interrupted": false
+    },
+    {
+      "repeat": 1,
+      "prompt": "moon_600",
+      "text": "In what year did humans first land on the moon?",
+      "responses": 2,
+      "transcripts": [
+        "In what year did humans",
+        "First land on the Moon."
+      ],
+      "interrupted": true
+    }
+  ]
+}

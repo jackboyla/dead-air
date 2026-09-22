@@ -1,0 +1,242 @@
+{
+  "spec": {
+    "name": "Quantisation: Q4_0",
+    "concurrency": 1,
+    "turns": 9,
+    "warmup_turns": 1,
+    "interval_s": 0.0,
+    "barge_in_after_s": null,
+    "faults": [],
+    "notes": "Identical to the Q8_0 run except the LLM is gemma-4-E4B-it Q4_0."
+  },
+  "started_at": "2026-09-22T09:17:07.349890+00:00",
+  "duration_s": 29.2,
+  "environment": {
+    "host": "radiance-ws",
+    "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "gpus": [
+      "NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02",
+      "NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02"
+    ]
+  },
+  "rejected_sessions": 0,
+  "sessions": [
+    {
+      "session_index": 0,
+      "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+      "connect_ms": 6.2961450312286615,
+      "rejected": null,
+      "error": null,
+      "turns": [
+        {
+          "session_id": "probe-0",
+          "turn_index": 0,
+          "response_id": "resp_5641c4dd9fcd4070b3d3f54bbd240580",
+          "status": "completed",
+          "prompt": "What is the capital of France?",
+          "transcript": "What is the capital of France?",
+          "response_text": "The capital of France is Paris.",
+          "audio_bytes": 56320,
+          "audio_duration_ms": 1173.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 151.72538813203573,
+            "asr": 11.568521847948432,
+            "llm_ttft": 786.4556820131838,
+            "tts_ttfb": 102.07110713236034,
+            "ttfa": 900.0953109934926,
+            "perceived_ttfa": 1051.8206991255283,
+            "response_total": 302.2799959871918,
+            "barge_in": null
+          },
+          "realtime_factor": 5.875713358680927
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 1,
+          "response_id": "resp_aceca82fb36347f78a165bb3bc422b12",
+          "status": "completed",
+          "prompt": "At what temperature does water boil at sea level?",
+          "transcript": "At what temperature does water boil at sea level?",
+          "response_text": "Water boils at 100 degrees Celsius at sea level.",
+          "audio_bytes": 120832,
+          "audio_duration_ms": 2517.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 151.9841430708766,
+            "asr": 12.186774984002113,
+            "llm_ttft": 785.4457190260291,
+            "tts_ttfb": 102.17286506667733,
+            "ttfa": 899.8053590767086,
+            "perceived_ttfa": 1051.7895021475852,
+            "response_total": 499.3127519264817,
+            "barge_in": null
+          },
+          "realtime_factor": 6.346208790220217
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 2,
+          "response_id": "resp_19c6949e24654af0b3ee0fcf7a03b96f",
+          "status": "completed",
+          "prompt": "How many planets are in the solar system?",
+          "transcript": "How many planets are in the solar system?",
+          "response_text": "There are eight planets in our solar system.",
+          "audio_bytes": 71680,
+          "audio_duration_ms": 1493.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 154.11975607275963,
+            "asr": 13.345971005037427,
+            "llm_ttft": 789.4546980969608,
+            "tts_ttfb": 82.5851468835026,
+            "ttfa": 885.3858159855008,
+            "perceived_ttfa": 1039.5055720582604,
+            "response_total": 332.69205200485885,
+            "barge_in": null
+          },
+          "realtime_factor": 5.983835656498808
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 3,
+          "response_id": "resp_57915074aff844e7a56d498b6b765e93",
+          "status": "completed",
+          "prompt": "What is the tallest mountain in the world?",
+          "transcript": "What is the tallest mountain in the world?",
+          "response_text": "Mount Everest is the tallest mountain in the world.",
+          "audio_bytes": 110592,
+          "audio_duration_ms": 2304.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 147.38373598083854,
+            "asr": 25.035301921889186,
+            "llm_ttft": 780.8664562180638,
+            "tts_ttfb": 91.44530189223588,
+            "ttfa": 897.3470600321889,
+            "perceived_ttfa": 1044.7307960130274,
+            "response_total": 456.4555671531707,
+            "barge_in": null
+          },
+          "realtime_factor": 6.31912069824445
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 4,
+          "response_id": "resp_b1216d6868d94d4da1ad2dd2fa286e2e",
+          "status": "completed",
+          "prompt": "Which ocean is the largest?",
+          "transcript": "Which ocean is the largest?",
+          "response_text": "The Pacific Ocean is the largest ocean.",
+          "audio_bytes": 79872,
+          "audio_duration_ms": 1664.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 172.59734496474266,
+            "asr": 14.569845981895924,
+            "llm_ttft": 790.6210760120302,
+            "tts_ttfb": 92.07764407619834,
+            "ttfa": 897.2685660701245,
+            "perceived_ttfa": 1069.8659110348672,
+            "response_total": 354.7080650459975,
+            "barge_in": null
+          },
+          "realtime_factor": 6.350758221634148
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 5,
+          "response_id": "resp_ca2ae4c899b841cd858840b8ef10a2b9",
+          "status": "completed",
+          "prompt": "Roughly how fast does light travel?",
+          "transcript": "Roughly how fast does light travel?",
+          "response_text": "Light travels at approximately 300,000 kilometers per second.",
+          "audio_bytes": 131072,
+          "audio_duration_ms": 2730.67,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 169.19414489530027,
+            "asr": 15.118650160729885,
+            "llm_ttft": 784.3386358581483,
+            "tts_ttfb": 91.95657493546605,
+            "ttfa": 891.4138609543443,
+            "perceived_ttfa": 1060.6080058496445,
+            "response_total": 529.325274983421,
+            "barge_in": null
+          },
+          "realtime_factor": 6.250774582252005
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 6,
+          "response_id": "resp_562a95f686a24a0cb28ab6d5fb41564e",
+          "status": "completed",
+          "prompt": "In what year did humans first land on the moon?",
+          "transcript": "In what year did humans first land on the moon?",
+          "response_text": "Humans first landed on the moon in 1969.",
+          "audio_bytes": 95232,
+          "audio_duration_ms": 1984.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 152.48246304690838,
+            "asr": 17.170745879411697,
+            "llm_ttft": 788.0833591334522,
+            "tts_ttfb": 91.93191397935152,
+            "ttfa": 897.1860189922154,
+            "perceived_ttfa": 1049.6684820391238,
+            "response_total": 405.59981600381434,
+            "barge_in": null
+          },
+          "realtime_factor": 6.3318671721195585
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 7,
+          "response_id": "resp_79035b255554431dbf27eed596e70d33",
+          "status": "completed",
+          "prompt": "What do bees make besides honey?",
+          "transcript": "What do bees make besides honey?",
+          "response_text": "Bees also make beeswax and propolis.",
+          "audio_bytes": 92160,
+          "audio_duration_ms": 1920.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 135.78784093260765,
+            "asr": 15.903300140053034,
+            "llm_ttft": 776.8851078581065,
+            "tts_ttfb": 91.90099500119686,
+            "ttfa": 884.6894029993564,
+            "perceived_ttfa": 1020.477243931964,
+            "response_total": 403.7972460500896,
+            "barge_in": null
+          },
+          "realtime_factor": 6.165218669823847
+        },
+        {
+          "session_id": "session_8d256fc35ed34612b4c19ffd4492bc5a",
+          "turn_index": 8,
+          "response_id": "resp_5e244f333140413483d5e748a85164c0",
+          "status": "completed",
+          "prompt": "How many degrees are in a triangle?",
+          "transcript": "How many degrees are in a triangle?",
+          "response_text": "There are always 180 degrees in a triangle.",
+          "audio_bytes": 112640,
+          "audio_duration_ms": 2346.67,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 151.74621203914285,
+            "asr": 15.533515019342303,
+            "llm_ttft": 787.2829909902066,
+            "tts_ttfb": 91.45846893079579,
+            "ttfa": 894.2749749403447,
+            "perceived_ttfa": 1046.0211869794875,
+            "response_total": 465.6213659327477,
+            "barge_in": null
+          },
+          "realtime_factor": 6.281162243678998
+        }
+      ]
+    }
+  ]
+}

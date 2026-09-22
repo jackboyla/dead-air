@@ -1,0 +1,196 @@
+{
+  "spec": {
+    "name": "concurrency",
+    "concurrency": 1,
+    "turns": 7,
+    "warmup_turns": 1,
+    "interval_s": 0.0,
+    "barge_in_after_s": null,
+    "faults": [],
+    "notes": ""
+  },
+  "started_at": "2026-09-22T09:07:08.888741+00:00",
+  "duration_s": 23.03,
+  "environment": {
+    "host": "radiance-ws",
+    "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "gpus": [
+      "NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02",
+      "NVIDIA GeForce RTX 5090, 32607 MiB, 580.173.02"
+    ]
+  },
+  "rejected_sessions": 0,
+  "sessions": [
+    {
+      "session_index": 0,
+      "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+      "connect_ms": 7.063379045575857,
+      "rejected": null,
+      "error": null,
+      "turns": [
+        {
+          "session_id": "probe-0",
+          "turn_index": 0,
+          "response_id": "resp_7b0c57dca2f94b43b66587129151025f",
+          "status": "completed",
+          "prompt": "What is the capital of France?",
+          "transcript": "What is the capital of France?",
+          "response_text": "The capital of France is Paris.",
+          "audio_bytes": 56320,
+          "audio_duration_ms": 1173.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 151.72600513324142,
+            "asr": 24.030016968026757,
+            "llm_ttft": 780.587205896154,
+            "tts_ttfb": 102.47585200704634,
+            "ttfa": 907.0930748712271,
+            "perceived_ttfa": 1058.8190800044686,
+            "response_total": 313.45866504125297,
+            "barge_in": null
+          },
+          "realtime_factor": 5.625233149500286
+        },
+        {
+          "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+          "turn_index": 1,
+          "response_id": "resp_a36c9eac23b64b9ebff26b5884e20d0c",
+          "status": "completed",
+          "prompt": "At what temperature does water boil at sea level?",
+          "transcript": "At what temperature does water boil at sea level?",
+          "response_text": "Water boils at 100 degrees Celsius at sea level.",
+          "audio_bytes": 102400,
+          "audio_duration_ms": 2133.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 155.53854196332395,
+            "asr": 12.664821930229664,
+            "llm_ttft": 787.6169111113995,
+            "tts_ttfb": 91.83332789689302,
+            "ttfa": 892.1150609385222,
+            "perceived_ttfa": 1047.6536029018462,
+            "response_total": 437.4535100068897,
+            "barge_in": null
+          },
+          "realtime_factor": 6.18245456299095
+        },
+        {
+          "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+          "turn_index": 2,
+          "response_id": "resp_e5abb821c21147e593b09a170574c53e",
+          "status": "completed",
+          "prompt": "How many planets are in the solar system?",
+          "transcript": "How many planets are in the solar system?",
+          "response_text": "There are eight planets in our solar system.",
+          "audio_bytes": 69632,
+          "audio_duration_ms": 1450.67,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 149.57965002395213,
+            "asr": 24.327333085238934,
+            "llm_ttft": 783.173652831465,
+            "tts_ttfb": 91.40194207429886,
+            "ttfa": 898.9029279910028,
+            "perceived_ttfa": 1048.482578014955,
+            "response_total": 331.323673017323,
+            "barge_in": null
+          },
+          "realtime_factor": 6.057819957939901
+        },
+        {
+          "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+          "turn_index": 3,
+          "response_id": "resp_e25522fcdfd24c3d909fe348225dd8e9",
+          "status": "completed",
+          "prompt": "What is the tallest mountain in the world?",
+          "transcript": "What is the tallest mountain in the world?",
+          "response_text": "The tallest mountain in the world is Mount Everest.",
+          "audio_bytes": 92160,
+          "audio_duration_ms": 1920.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 154.74298503249884,
+            "asr": 15.258535044267774,
+            "llm_ttft": 779.1184820234776,
+            "tts_ttfb": 102.15205093845725,
+            "ttfa": 896.5290680062026,
+            "perceived_ttfa": 1051.2720530387014,
+            "response_total": 406.2129680532962,
+            "barge_in": null
+          },
+          "realtime_factor": 6.324279799606908
+        },
+        {
+          "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+          "turn_index": 4,
+          "response_id": "resp_4451d42dbf764d708e850b68724b8128",
+          "status": "completed",
+          "prompt": "Which ocean is the largest?",
+          "transcript": "Which ocean is the largest?",
+          "response_text": "The Pacific Ocean is the largest ocean.",
+          "audio_bytes": 74752,
+          "audio_duration_ms": 1557.33,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 173.99017605930567,
+            "asr": 10.89933910407126,
+            "llm_ttft": 791.6953829117119,
+            "tts_ttfb": 93.22834992781281,
+            "ttfa": 895.823071943596,
+            "perceived_ttfa": 1069.8132480029017,
+            "response_total": 342.98784495331347,
+            "barge_in": null
+          },
+          "realtime_factor": 6.243937425396847
+        },
+        {
+          "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+          "turn_index": 5,
+          "response_id": "resp_122acd526689431992b857ee5c5b1062",
+          "status": "completed",
+          "prompt": "Roughly how fast does light travel?",
+          "transcript": "Roughly how fast does light travel?",
+          "response_text": "Light travels at a speed of approximately 300,000 kilometers per second.",
+          "audio_bytes": 153600,
+          "audio_duration_ms": 3200.0,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 173.81141684018075,
+            "asr": 15.157235087826848,
+            "llm_ttft": 784.7276099491864,
+            "tts_ttfb": 91.58083493821323,
+            "ttfa": 891.4656799752265,
+            "perceived_ttfa": 1065.2770968154073,
+            "response_total": 591.9506868813187,
+            "barge_in": null
+          },
+          "realtime_factor": 6.399389432510545
+        },
+        {
+          "session_id": "session_e6c167345ccf4559ad74efc9903a64d9",
+          "turn_index": 6,
+          "response_id": "resp_ddff4b9736334adeba542fddab52b154",
+          "status": "completed",
+          "prompt": "In what year did humans first land on the moon?",
+          "transcript": "In what year did humans first land on the moon?",
+          "response_text": "Humans first landed on the moon in 1969.",
+          "audio_bytes": 112640,
+          "audio_duration_ms": 2346.67,
+          "errors": [],
+          "latency_ms": {
+            "vad_eou_lag": 153.5376498941332,
+            "asr": 15.716139925643802,
+            "llm_ttft": 783.1709731835872,
+            "tts_ttfb": 92.40650478750467,
+            "ttfa": 891.2936178967357,
+            "perceived_ttfa": 1044.8312677908689,
+            "response_total": 467.7410169970244,
+            "barge_in": null
+          },
+          "realtime_factor": 6.259494613067537
+        }
+      ]
+    }
+  ]
+}
