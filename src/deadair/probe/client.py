@@ -102,7 +102,15 @@ class RealtimeProbe:
         self.result.connect_ms = (time.monotonic() - started) * 1000.0
         self._reader = asyncio.create_task(self._read_loop(), name=f"probe-read-{self.session_index}")
         try:
-            await self._send({"type": "session.update", "session": self._session_payload()})
+            try:
+                await self._send({"type": "session.update", "session": self._session_payload()})
+            except websockets.ConnectionClosed:
+                # A server with no free slot sends session_limit_reached and hangs
+                # up at once. Let the reader record that reason before tearing
+                # down, or a refusal is counted as an anonymous failure.
+                with contextlib.suppress(Exception):
+                    await asyncio.wait_for(asyncio.shield(self._reader), timeout=2.0)
+                raise
             yield self
         finally:
             await self.close()
