@@ -102,6 +102,8 @@ class TurnTimeline:
     audio_bytes: int = 0
     audio_sample_rate: int = 24_000
     errors: list[str] = field(default_factory=list)
+    # Events that break the Realtime contract even when every latency looks fine.
+    protocol_violations: list[str] = field(default_factory=list)
 
     @property
     def audio_duration_ms(self) -> float:
@@ -200,6 +202,7 @@ class TurnTimeline:
             "audio_bytes": self.audio_bytes,
             "audio_duration_ms": round(self.audio_duration_ms, 2),
             "errors": self.errors,
+            "protocol_violations": self.protocol_violations,
             "latency_ms": {
                 "vad_eou_lag": self.vad_eou_lag_ms,
                 "asr": self.asr_ms,
@@ -338,6 +341,12 @@ class TimelineBuilder:
 
     def _on_audio_delta(self, event: RecordedEvent) -> None:
         turn = self._for_response(event.payload.get("response_id"))
+        # Audio after the terminal event is played over whatever comes next, and
+        # a client that trusts response.done has already stopped listening for it.
+        if turn.response_done is not None:
+            turn.protocol_violations.append("audio_after_response_done")
+        elif turn.response_created is None:
+            turn.protocol_violations.append("audio_before_response_created")
         if turn.first_audio is None:
             turn.first_audio = event.t
         # A server that streams audio without exposing text deltas still tells us

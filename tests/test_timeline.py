@@ -249,3 +249,28 @@ class TestReplay:
         assert len(replayed) == len(live.turns)
         assert replayed[0].ttfa_ms == pytest.approx(live.turns[0].ttfa_ms)
         assert replayed[0].to_json() == live.turns[0].to_json()
+
+
+def test_audio_after_response_done_is_a_violation():
+    builder = TimelineBuilder()
+    simple_turn(builder)
+    builder.add(event(2.70, "response.output_audio.delta", response_id="resp_1", delta="AAAA"))
+
+    (turn,) = builder.turns
+    assert turn.protocol_violations == ["audio_after_response_done"]
+
+
+def test_audio_for_an_unannounced_response_is_a_violation():
+    builder = TimelineBuilder()
+    builder.mark_client_speech_start(0.0)
+    builder.add(event(0.5, "input_audio_buffer.speech_stopped"))
+    builder.add(event(0.9, "response.output_audio.delta", response_id="resp_x", delta="AAAA"))
+
+    (turn,) = builder.turns
+    assert turn.protocol_violations == ["audio_before_response_created"]
+
+
+def test_clean_turn_has_no_violations():
+    builder = TimelineBuilder()
+    simple_turn(builder)
+    assert builder.turns[0].protocol_violations == []

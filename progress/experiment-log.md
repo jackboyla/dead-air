@@ -455,3 +455,43 @@ enough concurrent sessions to make llama.cpp queue.
 - Code issue? None.
 - Useful property of the design: swapping the LLM meant restarting the tap, not the
   pipeline. The speech models stayed loaded, so the arms are otherwise identical.
+
+## 2026-09-29—MOCK-SMOKE-001
+
+### Intent
+
+Check the ported gate, compare and violation detectors end to end against the mock
+target. These are harness checks, not latency results.
+
+### Environment
+
+- Machine: `radiance-ws`
+- GPUs used: none
+- Branch: `feat/fold-in-s2s-bench`
+
+### Commands
+
+```bash
+uv run python scripts/make_tone_prompts.py --out $T/tones
+uv run deadair mock --port 18766 &
+uv run deadair probe --url ws://127.0.0.1:18766/v1/realtime --prompts $T/tones --concurrency 2 --turns 4 \
+    --out $T/base --budget "completion_rate>=1" --budget "protocol_violations<=0" --budget "perceived_ttfa:p95<=1500"
+# restart the mock with --llm-ms 300 --stale-audio-after-cancel, then:
+uv run deadair probe --url ... --prompts $T/tones --concurrency 2 --turns 4 --out $T/slow
+uv run deadair probe --url ... --prompts $T/tones --turns 3 --warmup 0 --barge-in-after 0.05 --out $T/stale \
+    --budget "protocol_violations<=0"
+uv run deadair compare $T/base/probe-c2.json $T/slow/probe-c2.json --fail-on-regression
+uv run deadair gate $T/base/probe-c2.json --budget "llm_ttft<=50"
+```
+
+### Result
+
+- Clean run: all budgets pass, exit 0. Perceived TTFA p95 314 ms.
+- Stale drill: 3 `audio_after_response_done` violations, exit 2.
+- Compare: flags `llm_ttft` (+240 ms, matching the injected +240 ms) and the totals
+  that contain it; ASR, TTS and VAD unchanged within 1 ms. Exit 2.
+- Gate on `llm_ttft<=50`: actual 61 ms, exit 2.
+
+### Decision
+
+Keep. Every detector fires on its drill and stays quiet on the clean run.

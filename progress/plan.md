@@ -117,3 +117,62 @@ Nothing blocking. Possible follow-ups:
 ## Artifacts
 
 - `progress/plan.md`, `progress/experiment-log.md`, `progress/notes.md`
+
+## Plan 4: fold s2s-bench into dead-air (2026-09-29)
+
+### Why
+
+Two public harnesses for the same protocol split attention. dead-air has the
+findings and the stronger probe (two clocks, speech barge-in, speculative
+response handling), so it stays. s2s-bench contributes what dead-air lacked for
+regression work.
+
+### Ported
+
+- `deadair mock`: deterministic Realtime target with fault drills
+  (`--fail-every`, `--max-sessions`, `--stale-audio-after-cancel`, stage delays).
+  Turn detection counts silence in audio time, like a real VAD.
+- Budgets: `--budget` on `probe`, and `deadair gate` for saved runs. Exit 2 on failure.
+- `deadair compare`: stage-by-stage median/p95 deltas; regression = median up >10% and >20 ms.
+- Protocol checks in the reducer: `audio_after_response_done`, `audio_before_response_created`.
+- CI job that probes the mock with budgets on every push.
+
+### Deliberately not ported
+
+- YAML scenario files: a second config system next to CLI flags. A shell script of
+  `deadair probe` flags is the scenario.
+- Client-side send jitter and audio drop: conflicts with deadline pacing; network
+  faults belong in `tc`/a proxy, as s2s-bench's own README said.
+- Perfetto `trace.json` and a Prometheus text file: dead-air already writes JSONL
+  traces and runs live Prometheus.
+- s2s-bench's interpolated percentiles: dead-air keeps nearest rank.
+
+### Found while porting
+
+- **Refusal race in the probe (fixed).** speech-to-speech sends
+  `session_limit_reached` then closes with 1008 at once. If the socket closed before
+  the reader handled the error, the probe raised on `session.update` and counted a
+  generic failure rather than a refusal. The probe now drains the reader first.
+- **Probe frame pacing is one frame early (not changed).** `_stream_pcm` sends each
+  20 ms frame at the start of its window; a microphone delivers it at the end. The
+  server therefore finishes counting VAD silence ~20 ms sooner than it would with a
+  live mic, and perceived TTFA reads ~20 ms low. Published numbers carry this bias.
+  Changing it breaks comparison with `results/published/`, so it needs a decision
+  and a re-run, not a silent fix.
+
+### Commands
+
+```bash
+uv sync --group dev
+uv run ruff check src/ tests/ scripts/ && uv run ruff format --check src/ tests/ scripts/
+uv run mypy src/
+uv run pytest tests/ -q            # 108 passed
+```
+
+The CI smoke step was also run locally, verbatim from `.github/workflows/ci.yml`: all budgets passed.
+
+### Outstanding
+
+- Archive `jackboyla/s2s-bench` after this lands (Jack to confirm).
+- Decide on the frame-pacing bias above.
+- Nightly regression loop against speech-to-speech `main` (next plan).
