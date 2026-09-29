@@ -173,6 +173,6 @@ The CI smoke step was also run locally, verbatim from `.github/workflows/ci.yml`
 
 ### Outstanding
 
-- Archive `jackboyla/s2s-bench` after this lands (Jack to confirm).
+- Archived `jackboyla/s2s-bench` on 2026-09-29, after its README notice (PR #1) merged.
 - Decide on the frame-pacing bias above.
 - Nightly regression loop against speech-to-speech `main` (next plan).
