@@ -7,6 +7,9 @@
     deadair probe     drive Realtime sessions and record the latency budget
     deadair sweep     run a concurrency sweep and report where it breaks
     deadair report    re-render a saved run without re-running it
+    deadair gate      check a saved run against latency budgets
+    deadair compare   compare two saved runs stage by stage
+    deadair mock      serve a deterministic Realtime target for tests and CI
 """
 
 from __future__ import annotations
@@ -80,6 +83,7 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="SPEC",
         help="Fault to apply at the tap for the duration of this run.",
     )
+    _add_budget_argument(probe)
 
     sweep = sub.add_parser("sweep", help="Run the same scenario at increasing concurrency.")
     _add_probe_arguments(sweep)
@@ -89,7 +93,49 @@ def _build_parser() -> argparse.ArgumentParser:
     report.add_argument("run", type=Path, help="Path to a run JSON produced by probe or sweep.")
     report.add_argument("--out", type=Path, default=None, help="Output directory. Defaults beside the input.")
 
+    gate = sub.add_parser("gate", help="Check a saved run against latency budgets. Exits 2 on failure.")
+    gate.add_argument("run", type=Path, help="Path to a run JSON produced by probe or sweep.")
+    _add_budget_argument(gate, required=True)
+
+    compare = sub.add_parser("compare", help="Compare two saved runs stage by stage.")
+    compare.add_argument("base", type=Path, help="Run JSON to compare against.")
+    compare.add_argument("candidate", type=Path, help="Run JSON under test.")
+    compare.add_argument(
+        "--threshold", type=float, default=0.10, help="Relative median rise that counts as a regression. Default 0.10."
+    )
+    compare.add_argument(
+        "--floor-ms", type=float, default=20.0, help="Absolute median rise that must also be exceeded. Default 20."
+    )
+    compare.add_argument("--out", type=Path, default=None, help="Also write the comparison as Markdown here.")
+    compare.add_argument("--fail-on-regression", action="store_true", help="Exit 2 when any regression is found.")
+
+    mock = sub.add_parser("mock", help="Serve a deterministic Realtime target for tests and CI.")
+    mock.add_argument("--host", default="127.0.0.1")
+    mock.add_argument("--port", type=int, default=18766)
+    mock.add_argument("--vad-silence-ms", type=int, default=200, help="Quiet time that ends a turn.")
+    mock.add_argument("--stt-ms", type=int, default=40)
+    mock.add_argument("--llm-ms", type=int, default=60)
+    mock.add_argument("--tts-ms", type=int, default=30)
+    mock.add_argument("--max-sessions", type=int, default=0, help="Refuse sessions past this many. 0 is unlimited.")
+    mock.add_argument("--fail-every", type=int, default=0, help="Fail every Nth turn. 0 never fails.")
+    mock.add_argument(
+        "--stale-audio-after-cancel",
+        action="store_true",
+        help="Send audio after reporting a response cancelled, to exercise the violation detector.",
+    )
+
     return parser
+
+
+def _add_budget_argument(parser: argparse.ArgumentParser, required: bool = False) -> None:
+    parser.add_argument(
+        "--budget",
+        action="append",
+        default=[],
+        required=required,
+        metavar="SPEC",
+        help="Budget to enforce, repeatable. For example perceived_ttfa:p95<=1200 or completion_rate>=0.99.",
+    )
 
 
 def _add_probe_arguments(parser: argparse.ArgumentParser) -> None:
@@ -202,8 +248,25 @@ def _cmd_probe(args: argparse.Namespace) -> int:
         tap_url=args.tap_url,
         notes=args.notes,
     )
-    _run_and_report(args, spec, stem=f"probe-c{args.concurrency}")
-    return 0
+    from deadair.report.gate import BudgetSpecError, parse_budgets
+
+    try:
+        budgets = parse_budgets(args.budget)
+    except BudgetSpecError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    result = _run_and_report(args, spec, stem=f"probe-c{args.concurrency}")
+    return _check_budgets(result, budgets)
+
+
+def _check_budgets(result: Any, budgets: list[Any]) -> int:
+    from deadair.report.gate import evaluate, render_gate
+
+    if not budgets:
+        return 0
+    outcomes = evaluate(result, budgets)
+    print(render_gate(outcomes))
+    return 0 if all(outcome.passed for outcome in outcomes) else 2
 
 
 def _cmd_sweep(args: argparse.Namespace) -> int:
@@ -271,33 +334,10 @@ def _write_sweep_summary(out: Path, summary: list[dict[str, Any]]) -> None:
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
-    from deadair.probe.runner import RunResult, RunSpec
     from deadair.report.render import render
+    from deadair.report.saved import load_result
 
-    payload = json.loads(args.run.read_text(encoding="utf-8"))
-    spec_payload = payload.get("spec", {})
-    spec = RunSpec(
-        name=spec_payload.get("name", args.run.stem),
-        concurrency=int(spec_payload.get("concurrency", 1)),
-        turns=int(spec_payload.get("turns", 0)),
-        warmup_turns=int(spec_payload.get("warmup_turns", 0)),
-        interval_s=float(spec_payload.get("interval_s", 0.0)),
-        barge_in_after_s=spec_payload.get("barge_in_after_s"),
-        faults=list(spec_payload.get("faults") or []),
-        notes=spec_payload.get("notes", ""),
-    )
-    sessions = [_session_from_json(item) for item in payload.get("sessions", [])]
-    result = RunResult(
-        spec=spec,
-        started_at=payload.get("started_at", ""),
-        duration_s=float(payload.get("duration_s", 0.0)),
-        sessions=sessions,
-        environment=payload.get("environment", {}),
-    )
-    # The saved run keeps every turn, warmup included, and records how many were
-    # warmup. Re-rendering must trim the same count the original run trimmed, or a
-    # report regenerated from a trace quietly disagrees with the one it replaces.
-
+    result = load_result(args.run)
     out = args.out or args.run.parent
     report = render(result)
     markdown_path, html_path = report.write(out, stem=args.run.stem + "-report")
@@ -305,71 +345,52 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
-def _session_from_json(item: dict[str, Any]) -> Any:
-    from deadair.probe.client import SessionResult
-    from deadair.timeline import TurnTimeline
+def _cmd_gate(args: argparse.Namespace) -> int:
+    from deadair.report.gate import BudgetSpecError, parse_budgets
+    from deadair.report.saved import load_result
 
-    turns: list[TurnTimeline] = []
-    for raw in item.get("turns", []):
-        turn = TurnTimeline(
-            session_id=raw.get("session_id", ""),
-            turn_index=int(raw.get("turn_index", 0)),
-            response_id=raw.get("response_id"),
-            status=raw.get("status"),
-            prompt=raw.get("prompt"),
-            transcript=raw.get("transcript"),
-            response_text=raw.get("response_text", ""),
-            audio_bytes=int(raw.get("audio_bytes", 0)),
-            errors=list(raw.get("errors") or []),
-        )
-        # Saved runs carry derived latencies, not the timestamps behind them.
-        # Reconstruct a consistent set of monotonic marks from those durations so
-        # the renderer sees the same numbers it saw originally.
-        _restore_marks(turn, raw.get("latency_ms") or {}, raw.get("realtime_factor"))
-        turns.append(turn)
+    try:
+        budgets = parse_budgets(args.budget)
+    except BudgetSpecError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    return _check_budgets(load_result(args.run), budgets)
 
-    result = SessionResult(
-        session_index=int(item.get("session_index", 0)),
-        session_id=item.get("session_id", ""),
-        turns=turns,
+
+def _cmd_compare(args: argparse.Namespace) -> int:
+    from deadair.report.compare import compare, render_comparison
+    from deadair.report.saved import load_result
+
+    comparison = compare(
+        load_result(args.base), load_result(args.candidate), threshold=args.threshold, floor_ms=args.floor_ms
     )
-    result.connect_ms = item.get("connect_ms")
-    result.rejected = item.get("rejected")
-    result.error = item.get("error")
-    return result
+    markdown = render_comparison(comparison)
+    print(markdown)
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(markdown, encoding="utf-8")
+    return 2 if args.fail_on_regression and comparison.regressions else 0
 
 
-def _restore_marks(turn: Any, latency: dict[str, Any], realtime_factor: Any) -> None:
-    """Rebuild monotonic marks from saved durations, anchored at zero."""
+def _cmd_mock(args: argparse.Namespace) -> int:
+    from deadair.mock import MockConfig, serve_mock
 
-    def value(name: str) -> float | None:
-        raw = latency.get(name)
-        return float(raw) / 1000.0 if isinstance(raw, (int, float)) else None
-
-    turn.client_speech_end = 0.0
-    lag = value("vad_eou_lag")
-    turn.speech_stopped = lag if lag is not None else 0.0
-    asr = value("asr")
-    if asr is not None:
-        turn.transcript_done = turn.speech_stopped + asr
-    ttft = value("llm_ttft")
-    if ttft is not None and turn.transcript_done is not None:
-        turn.first_token = turn.transcript_done + ttft
-        turn.response_created = turn.transcript_done
-    ttfb = value("tts_ttfb")
-    if ttfb is not None and turn.first_token is not None:
-        turn.first_audio = turn.first_token + ttfb
-    total = value("response_total")
-    if total is not None and turn.response_created is not None:
-        turn.response_done = turn.response_created + total
-    # Barge-in has no timestamp of its own in the saved run, only a duration.
-    # Anchor it anywhere consistent; the report only ever reads the difference.
-    barge_in = value("barge_in")
-    if barge_in is not None and turn.first_audio is not None:
-        turn.barge_in_sent = turn.first_audio
-        turn.last_audio_after_barge_in = turn.first_audio + barge_in
-    if isinstance(realtime_factor, (int, float)) and turn.first_audio is not None and realtime_factor > 0:
-        turn.audio_done = turn.first_audio + turn.audio_duration_ms / 1000.0 / float(realtime_factor)
+    config = MockConfig(
+        host=args.host,
+        port=args.port,
+        vad_silence_ms=args.vad_silence_ms,
+        stt_ms=args.stt_ms,
+        llm_ms=args.llm_ms,
+        tts_ms=args.tts_ms,
+        max_sessions=args.max_sessions,
+        fail_every=args.fail_every,
+        stale_audio_after_cancel=args.stale_audio_after_cancel,
+    )
+    try:
+        asyncio.run(serve_mock(config))
+    except KeyboardInterrupt:
+        return 130
+    return 0
 
 
 _COMMANDS = {
@@ -378,6 +399,9 @@ _COMMANDS = {
     "probe": _cmd_probe,
     "sweep": _cmd_sweep,
     "report": _cmd_report,
+    "gate": _cmd_gate,
+    "compare": _cmd_compare,
+    "mock": _cmd_mock,
 }
 
 

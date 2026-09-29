@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from deadair.timeline import TurnTimeline
@@ -125,6 +125,11 @@ class TurnStats:
     headline: list[Distribution]
     realtime_factor: Distribution | None
     error_counts: dict[str, int]
+    violation_counts: dict[str, int] = field(default_factory=dict)
+
+    @property
+    def protocol_violations(self) -> int:
+        return sum(self.violation_counts.values())
 
     @property
     def completion_rate(self) -> float:
@@ -147,6 +152,7 @@ class TurnStats:
             "cancelled_turns": self.cancelled_turns,
             "completion_rate": round(self.completion_rate, 4),
             "error_counts": self.error_counts,
+            "violation_counts": self.violation_counts,
             "stages": [d.to_json() for d in self.stages],
             "headline": [d.to_json() for d in self.headline],
             "realtime_factor": self.realtime_factor.to_json() if self.realtime_factor else None,
@@ -155,9 +161,12 @@ class TurnStats:
 
 def summarize(turns: Sequence[TurnTimeline]) -> TurnStats:
     error_counts: dict[str, int] = {}
+    violation_counts: dict[str, int] = {}
     for turn in turns:
         for error in turn.errors:
             error_counts[error] = error_counts.get(error, 0) + 1
+        for violation in turn.protocol_violations:
+            violation_counts[violation] = violation_counts.get(violation, 0) + 1
 
     stages = [
         distribution
@@ -185,6 +194,7 @@ def summarize(turns: Sequence[TurnTimeline]) -> TurnStats:
             unit="x",
         ),
         error_counts=error_counts,
+        violation_counts=violation_counts,
     )
 
 

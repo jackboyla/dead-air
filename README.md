@@ -196,6 +196,52 @@ the raw JSONL event trace the numbers came from. Committed results are under
 [`results/published/`](results/published); the runs behind them are logged in
 [`progress/experiment-log.md`](progress/experiment-log.md).
 
+### 6. Gate and compare
+
+Any probe run can be held to a latency budget. The command exits `2` when a budget
+fails, so it works as a CI step or a nightly check:
+
+```bash
+uv run deadair probe --turns 9 --warmup 1 --out results/nightly \
+    --budget "perceived_ttfa:p95<=1200" --budget "completion_rate>=0.99" --budget "protocol_violations<=0"
+
+# The same check against a run already on disk
+uv run deadair gate results/baseline/probe-c1.json --budget "llm_ttft:p50<=100"
+```
+
+To find which stage a change slowed, probe both builds the same way and compare:
+
+```bash
+uv run deadair compare results/base/probe-c1.json results/candidate/probe-c1.json \
+    --out results/compare.md --fail-on-regression
+```
+
+A stage counts as a regression when its median rises by more than 10% *and* more
+than 20 ms (`--threshold`, `--floor-ms`). Medians, because with a few dozen turns a
+p95 is one or two samples.
+
+### Without a GPU
+
+`deadair mock` is a Realtime server with fixed stage delays and no models. It
+exists to test the tooling, not to produce numbers anyone should quote. CI runs the
+probe against it on every push. To run the same thing locally:
+
+```bash
+uv run python scripts/make_tone_prompts.py --out /tmp/tones
+uv run deadair mock &
+uv run deadair probe --url ws://127.0.0.1:18766/v1/realtime --prompts /tmp/tones --turns 4 \
+    --budget "completion_rate>=1" --budget "protocol_violations<=0"
+```
+
+It can also misbehave on purpose, so each detector is tested against a known answer:
+
+```bash
+uv run deadair mock --fail-every 3                 # failed responses lower completion
+uv run deadair mock --max-sessions 1               # sessions past the pool are refused
+uv run deadair mock --stale-audio-after-cancel     # audio after response.done is a violation
+uv run deadair mock --llm-ms 300                   # compare should blame llm_ttft alone
+```
+
 ---
 
 ## What the measurements found
@@ -310,7 +356,20 @@ deadair exporter  republish the pipeline's /v1/usage and /v1/pool as metrics
 deadair probe     drive Realtime sessions and record the latency budget
 deadair sweep     run the same scenario at increasing concurrency
 deadair report    re-render a saved run without re-running it
+deadair gate      check a saved run against latency budgets
+deadair compare   compare two saved runs stage by stage
+deadair mock      deterministic Realtime target for tests and CI
 ```
+
+### Protocol violations
+
+Each run also counts events that break the Realtime contract, however good the
+latency looks:
+
+| Violation | Meaning |
+|---|---|
+| `audio_after_response_done` | Audio arrived for a response already reported finished. A client plays it over whatever comes next. |
+| `audio_before_response_created` | Audio arrived for a response the server never announced. |
 
 ### Fault specifications
 
@@ -381,15 +440,17 @@ number can be recomputed from the event timeline behind it.
 ## Repository layout
 
 ```
-src/deadair/       tap, probe, report, exporter, CLI
+src/deadair/       tap, probe, report, exporter, mock, CLI
   timeline.py         the Realtime event reducer — where every latency is defined
+  report/gate.py      latency budgets
+  report/compare.py   run-to-run regression check
 web/                  WebRTC browser client with a live latency breakdown
 deploy/               Prometheus config, provisioned Grafana dashboard
 scripts/              prompt generation, pipeline launcher, WebRTC check
 docs/                 latency budget deep dive, runbook
 results/published/    committed measurements and the traces behind them
 progress/             plan and the append-only experiment ledger
-tests/                90 tests, no GPU required
+tests/                108 tests, no GPU required
 ```
 
 ## Contributing and prior art
@@ -404,6 +465,10 @@ reporting upstream, and are written up in the
   every start. On a host whose IPv6 routes drop traffic that turned `serve -h` into a
   seven-minute hang; a one-line path fix takes it to six seconds.
 - A truncated LLM stream is reported as a completed turn with no error.
+
+The budget gate, `compare`, the mock target and the protocol checks came from
+[`s2s-bench`](https://github.com/jackboyla/s2s-bench), an earlier harness for the
+same protocol that is now folded into this repository.
 
 See [`docs/runbook.md`](docs/runbook.md) for operating notes, including the IPv6
 workaround and what to do when sessions are refused.

@@ -101,6 +101,7 @@ def render_markdown(result: RunResult, stats: TurnStats, slices: list[BudgetSlic
     lines.append(f"| Cancelled | {stats.cancelled_turns} |")
     lines.append(f"| Failed | {stats.failed_turns} |")
     lines.append(f"| Timed out | {stats.timed_out_turns} |")
+    lines.append(f"| Protocol violations | {stats.protocol_violations} |")
     lines.append(f"| Sessions refused | {result.rejected_sessions} / {spec.concurrency} |")
     lines.append(f"| Wall time | {result.duration_s:.1f} s |")
     lines.append("")
@@ -155,6 +156,15 @@ def render_markdown(result: RunResult, stats: TurnStats, slices: list[BudgetSlic
         lines.append("| Error | Count |")
         lines.append("|---|---:|")
         for name, count in sorted(stats.error_counts.items(), key=lambda kv: -kv[1]):
+            lines.append(f"| `{name}` | {count} |")
+        lines.append("")
+
+    if stats.violation_counts:
+        lines.append("## Protocol violations")
+        lines.append("")
+        lines.append("| Violation | Count |")
+        lines.append("|---|---:|")
+        for name, count in sorted(stats.violation_counts.items(), key=lambda kv: -kv[1]):
             lines.append(f"| `{name}` | {count} |")
         lines.append("")
 
@@ -365,6 +375,8 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     ["Completed", (D.stats.completion_rate * 100).toFixed(0) + "%", D.stats.completed_turns + " of " + D.stats.total_turns + " turns"],
     ["Realtime factor", D.stats.realtime_factor ? fmt(D.stats.realtime_factor.percentiles["50"], "x") : "—", "median; >1.0x sustains speech"],
   ];
+  const violations = Object.values(D.stats.violation_counts || {}).reduce((a, b) => a + b, 0);
+  if (violations) tiles.push(["Protocol violations", String(violations), Object.keys(D.stats.violation_counts).join(", ")]);
   document.getElementById("tiles").innerHTML = tiles.map(
     t => '<div class="tile"><div class="k">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="d">' + t[2] + '</div></div>'
   ).join("");

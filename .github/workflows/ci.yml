@@ -97,3 +97,37 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Catches a malformed compose file without needing GPUs to start it.
       - run: docker compose -f compose.yaml config --quiet
+
+  smoke:
+    permissions:
+      contents: read
+    name: Probe against the mock target
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - run: uv sync --group dev
+      - name: Probe, gate and drill
+        run: |
+          uv run python scripts/make_tone_prompts.py --out smoke/tones
+          uv run deadair mock --port 18766 > smoke/mock.log 2>&1 &
+          mock_pid=$!
+          # Stop the mock before the job ends, or it holds the uv cache open
+          # and setup-uv's post-job cleanup fails.
+          trap 'kill "$mock_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 50); do
+            python -c 'import socket; socket.create_connection(("127.0.0.1", 18766), 1).close()' && break
+            sleep 0.2
+          done
+          url=ws://127.0.0.1:18766/v1/realtime
+          uv run deadair probe --url "$url" --prompts smoke/tones --concurrency 2 --turns 4 --out smoke/latency \
+            --budget "completion_rate>=1" --budget "protocol_violations<=0" --budget "perceived_ttfa:p95<=1500"
+          uv run deadair probe --url "$url" --prompts smoke/tones --turns 3 --warmup 0 --barge-in-after 0.05 \
+            --out smoke/barge-in --budget "barge_in:p95<=500" --budget "protocol_violations<=0"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: smoke-reports
+          path: smoke/
