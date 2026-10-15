@@ -98,6 +98,9 @@ the backend stalls mid-sentence" is only answerable by making it happen.
 reduces the event stream into a per-turn latency budget. It speaks synthesized
 prompts in real time, at microphone pacing, because server-side VAD behaves
 differently if you dump an utterance in one frame.
+Against `speech-to-speech` it also reads the pipeline's own timing for each
+stage (VAD, Smart Turn hold, STT, LLM, TTS), which the server attaches to every
+finished response.
 
 **`deadair report`** turns a run into Markdown and a self-contained HTML page
 that opens offline.

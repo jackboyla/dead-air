@@ -34,6 +34,22 @@ STAGES: tuple[tuple[str, str, Callable[[TurnTimeline], float | None]], ...] = (
     ("tts_ttfb", "TTS time to first byte", lambda t: t.tts_ttfb_ms),
 )
 
+# Stages as the server measures them, from ``speech_to_speech.turn_latency``. They
+# overlap rather than add up: the LLM figure covers the whole reply, and TTS can
+# start on the first sentence before it ends.
+SERVER_STAGES: tuple[tuple[str, str, Callable[[TurnTimeline], float | None]], ...] = (
+    ("server_vad_decision", "VAD end-of-speech decision", lambda t: t.server_ms("vad_decision_s")),
+    ("server_hold", "Hold before replying (Smart Turn)", lambda t: t.server_ms("hold_s")),
+    ("server_stt", "STT final transcript", lambda t: t.server_ms("stt_s")),
+    ("server_llm", "LLM whole reply", lambda t: t.server_ms("llm_s")),
+    ("server_tts_ttfa", "TTS to first audio", lambda t: t.server_ms("tts_ttfa_s")),
+    ("server_e2e", "Speech end to first audio (server)", lambda t: t.server_ms("e2e_s")),
+    ("server_uncovered", "Not covered by any stage", lambda t: t.server_uncovered_ms),
+)
+
+# Below this, ASR and LLM gaps on the wire mean the events arrived as one burst.
+BURST_MS = 5.0
+
 HEADLINE: tuple[tuple[str, str, Callable[[TurnTimeline], float | None]], ...] = (
     ("ttfa", "Time to first audio (server clock)", lambda t: t.ttfa_ms),
     ("perceived_ttfa", "Time to first audio (user clock)", lambda t: t.perceived_ttfa_ms),
@@ -126,6 +142,9 @@ class TurnStats:
     realtime_factor: Distribution | None
     error_counts: dict[str, int]
     violation_counts: dict[str, int] = field(default_factory=dict)
+    server_stages: list[Distribution] = field(default_factory=list)
+    # True when the client-side split cannot separate VAD, ASR and LLM.
+    events_bunched: bool = False
 
     @property
     def protocol_violations(self) -> int:
@@ -154,6 +173,8 @@ class TurnStats:
             "error_counts": self.error_counts,
             "violation_counts": self.violation_counts,
             "stages": [d.to_json() for d in self.stages],
+            "server_stages": [d.to_json() for d in self.server_stages],
+            "events_bunched": self.events_bunched,
             "headline": [d.to_json() for d in self.headline],
             "realtime_factor": self.realtime_factor.to_json() if self.realtime_factor else None,
         }
@@ -178,6 +199,14 @@ def summarize(turns: Sequence[TurnTimeline]) -> TurnStats:
         for name, label, getter in HEADLINE
         if (distribution := describe(name, label, (getter(turn) for turn in turns))) is not None
     ]
+    server_stages = [
+        distribution
+        for name, label, getter in SERVER_STAGES
+        if (distribution := describe(name, label, (getter(turn) for turn in turns))) is not None
+    ]
+    asr = describe("asr", "", (turn.asr_ms for turn in turns))
+    llm = describe("llm", "", (turn.llm_ttft_ms for turn in turns))
+    events_bunched = asr is not None and llm is not None and asr.p50 < BURST_MS and llm.p50 < BURST_MS
 
     return TurnStats(
         total_turns=len(turns),
@@ -195,6 +224,8 @@ def summarize(turns: Sequence[TurnTimeline]) -> TurnStats:
         ),
         error_counts=error_counts,
         violation_counts=violation_counts,
+        server_stages=server_stages,
+        events_bunched=events_bunched,
     )
 
 

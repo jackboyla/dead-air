@@ -22,6 +22,7 @@ configuration is one of the largest single terms in the budget. Both are kept.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -38,6 +39,12 @@ FIRST_TOKEN_EVENTS = frozenset(
 )
 
 TERMINAL_RESPONSE_STATUSES = frozenset({"completed", "cancelled", "failed", "incomplete"})
+
+# speech-to-speech attaches its own per-stage timings to terminal responses under
+# this metadata key, as a JSON string of seconds. They split stages the client
+# cannot: that server releases speech_stopped, the transcript and the response
+# together once the turn commits, so event gaps put everything under VAD.
+SERVER_LATENCY_KEY = "speech_to_speech.turn_latency"
 
 
 def _ms(later: float | None, earlier: float | None) -> float | None:
@@ -104,6 +111,8 @@ class TurnTimeline:
     errors: list[str] = field(default_factory=list)
     # Events that break the Realtime contract even when every latency looks fine.
     protocol_violations: list[str] = field(default_factory=list)
+    # The server's own stage timings in seconds, when it reports them.
+    server_latency: dict[str, Any] | None = None
 
     @property
     def audio_duration_ms(self) -> float:
@@ -156,6 +165,27 @@ class TurnTimeline:
         """Actual end of speech to first audio. What the user experiences."""
 
         return _ms(self.first_audio, self.client_speech_end)
+
+    def server_ms(self, key: str) -> float | None:
+        """A server-reported stage in milliseconds, or None if it was not reported."""
+
+        value = (self.server_latency or {}).get(key)
+        return float(value) * 1000.0 if isinstance(value, (int, float)) else None
+
+    @property
+    def server_uncovered_ms(self) -> float | None:
+        """Server total minus every reported stage, floored at zero.
+
+        The LLM stage spans the whole reply, so the stages can only overlap past the
+        total, never fall short of it by accident. Any shortfall is a wait no stage
+        measures, such as Smart Turn analysis or a stall.
+        """
+
+        total = self.server_ms("e2e_s")
+        if total is None:
+            return None
+        keys = ("vad_decision_s", "hold_s", "stt_s", "llm_s", "tts_ttfa_s")
+        return max(0.0, total - sum(self.server_ms(key) or 0.0 for key in keys))
 
     @property
     def response_total_ms(self) -> float | None:
@@ -214,6 +244,7 @@ class TurnTimeline:
                 "barge_in": self.barge_in_ms,
             },
             "realtime_factor": self.realtime_factor,
+            "server_latency": self.server_latency,
         }
 
 
@@ -368,6 +399,7 @@ class TimelineBuilder:
         status = response.get("status")
         if isinstance(status, str):
             turn.status = status
+        turn.server_latency = _server_latency(response.get("metadata"))
         if status == "failed":
             details = response.get("status_details") or {}
             error = details.get("error") or {}
@@ -383,6 +415,16 @@ class TimelineBuilder:
         error = event.payload.get("error") or {}
         message = str(error.get("type") or error.get("message") or "error")
         self._current().errors.append(message)
+
+
+def _server_latency(metadata: Any) -> dict[str, Any] | None:
+    raw = metadata.get(SERVER_LATENCY_KEY) if isinstance(metadata, dict) else None
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    return raw if isinstance(raw, dict) else None
 
 
 def _decoded_len(delta: Any) -> int:

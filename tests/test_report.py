@@ -14,6 +14,7 @@ import pytest
 from deadair.probe.client import SessionResult
 from deadair.probe.runner import RunResult, RunSpec
 from deadair.report.render import render, render_markdown
+from deadair.report.saved import load_result
 from deadair.report.stats import budget, describe, percentile, representative_turn, summarize
 from deadair.timeline import TurnTimeline
 
@@ -170,6 +171,26 @@ class TestRender:
         # The caveat about non-summing percentiles must survive refactors.
         assert "rarely the same turn" in report.markdown
         assert "RTX 5090" in report.markdown
+
+    def test_server_stage_timings_get_their_own_section_and_survive_a_reload(self, tmp_path) -> None:
+        # Transcript and response arriving together, as current speech-to-speech sends them.
+        turns = [make_turn(i, vad=2.0, asr=0.001, llm=0.001) for i in range(3)]
+        for turn in turns:
+            turn.server_latency = {"vad_decision_s": 0.1, "stt_s": 0.2, "llm_s": 1.2, "tts_ttfa_s": 0.5, "e2e_s": 2.9}
+        result = make_result(turns)
+        markdown = render(result).markdown
+
+        assert "## Server stage timings" in markdown
+        assert "| LLM whole reply | 3 | 1.20 s |" in markdown
+        assert "| Not covered by any stage | 3 | 900 ms |" in markdown
+        assert "VAD row also holds ASR and LLM time" in markdown
+        table = ("| Turn | VAD" + markdown.split("| Turn | VAD")[1]).split("\n\n")[0].splitlines()
+        assert {line.count("|") for line in table} == {10}, "every per-turn row must match the header"
+        path = tmp_path / "run.json"
+        path.write_text(json.dumps(result.to_json()))
+        assert summarize(load_result(path).measured_turns).server_stages == summarize(turns).server_stages
+        # Without server timings the report keeps its old shape.
+        assert "Server stage timings" not in render(make_result([make_turn(0)])).markdown
 
     def test_warmup_turns_are_excluded_from_the_statistics(self) -> None:
         slow_warmup = make_turn(0, llm=5.0)

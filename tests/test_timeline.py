@@ -8,6 +8,8 @@ measurement is taken against.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from deadair.timeline import RecordedEvent, TimelineBuilder, replay
@@ -49,6 +51,24 @@ class TestStageBoundaries:
         assert turn.asr_ms == pytest.approx(150, abs=1)
         assert turn.llm_ttft_ms == pytest.approx(150, abs=1)
         assert turn.tts_ttfb_ms == pytest.approx(150, abs=1)
+
+    def test_server_stage_timings_are_read_from_response_metadata(self) -> None:
+        builder = TimelineBuilder("s1")
+        simple_turn(builder)
+        timings = {"version": 2, "stt_s": 0.12, "llm_s": 1.5, "tts_ttfa_s": 0.4, "e2e_s": 2.6, "hold_s": None}
+        metadata = {"speech_to_speech.turn_latency": json.dumps(timings)}
+        builder.add(event(3.0, "response.done", response={"id": "resp_1", "status": "completed", "metadata": metadata}))
+        turn = builder.turns[0]
+
+        assert turn.server_ms("stt_s") == pytest.approx(120)
+        assert turn.server_ms("e2e_s") == pytest.approx(2600)
+        assert turn.server_ms("hold_s") is None
+        # 2.6 s total less 2.02 s of reported stages leaves 0.58 s no stage explains.
+        assert turn.server_uncovered_ms == pytest.approx(580)
+        # Servers that report nothing leave the field empty rather than zeroed.
+        plain = TimelineBuilder("s2")
+        simple_turn(plain)
+        assert plain.turns[0].server_latency is None
 
     def test_server_and_user_clocks_differ_by_the_vad_lag(self) -> None:
         builder = TimelineBuilder("s1")

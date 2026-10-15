@@ -22,6 +22,7 @@ from deadair.report.stats import (
     representative_turn,
     summarize,
 )
+from deadair.timeline import TurnTimeline
 
 # Categorical slots 1-4 from the validated reference palette, in fixed order.
 # Stage colors are assigned by position in the pipeline and never cycled, so
@@ -68,6 +69,20 @@ def _distribution_rows(distributions: list[Distribution]) -> str:
                 max=_fmt(d.maximum, d.unit),
             )
         )
+    return "\n".join(rows)
+
+
+def _server_turn_rows(turns: list[TurnTimeline]) -> str:
+    rows = [
+        "| Turn | VAD | Hold | STT | LLM reply | TTS first audio | Not covered | Server total | User waited |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for turn in turns:
+        if turn.server_latency is None:
+            continue
+        cells = [turn.server_ms(key) for key in ("vad_decision_s", "hold_s", "stt_s", "llm_s", "tts_ttfa_s")]
+        cells += [turn.server_uncovered_ms, turn.server_ms("e2e_s"), turn.perceived_ttfa_ms]
+        rows.append(f"| {turn.turn_index} | " + " | ".join(_fmt(value) for value in cells) + " |")
     return "\n".join(rows)
 
 
@@ -126,11 +141,29 @@ def render_markdown(result: RunResult, stats: TurnStats, slices: list[BudgetSlic
         lines.append(_distribution_rows(stats.stages))
         lines.append("")
 
+    if stats.server_stages:
+        lines.append("## Server stage timings")
+        lines.append("")
+        lines.append("Measured inside the pipeline and reported on `response.done`. The stages")
+        lines.append("overlap rather than add up: the LLM figure covers the whole reply, and")
+        lines.append('TTS can start on the first sentence before the reply ends. "Not covered" is')
+        lines.append("the server total minus every stage: waits the server does not report.")
+        lines.append("")
+        lines.append("| Stage | n | p50 | p90 | p95 | p99 | max |")
+        lines.append("|---|---:|---:|---:|---:|---:|---:|")
+        lines.append(_distribution_rows(stats.server_stages))
+        lines.append("")
+        lines.append(_server_turn_rows(result.measured_turns))
+        lines.append("")
+
     if slices:
         total = sum(s.ms for s in slices)
         lines.append("## Where one median turn spends its time")
         lines.append("")
         lines.append("A single representative turn, so the parts genuinely add up.")
+        if stats.events_bunched:
+            lines.append("This server sends the transcript and the response together, so the")
+            lines.append("VAD row also holds ASR and LLM time; use the server stage timings above.")
         lines.append("")
         lines.append("| Stage | Time | Share |")
         lines.append("|---|---:|---:|")
@@ -515,7 +548,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
 
   // ── Table ──────────────────────────────────────────────────────────
-  const all = (D.stats.headline || []).concat(D.stats.stages || []);
+  const all = (D.stats.headline || []).concat(D.stats.stages || [], D.stats.server_stages || []);
   document.getElementById("table").innerHTML =
     "<tr><th>Measure</th><th>n</th><th>p50</th><th>p90</th><th>p95</th><th>p99</th><th>max</th></tr>" +
     all.map(d => "<tr><td>" + d.label + "</td><td>" + d.count + "</td>" +

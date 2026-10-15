@@ -56,6 +56,7 @@ def _session_from_json(item: dict[str, Any]) -> SessionResult:
             audio_bytes=int(raw.get("audio_bytes", 0)),
             errors=list(raw.get("errors") or []),
             protocol_violations=list(raw.get("protocol_violations") or []),
+            server_latency=raw.get("server_latency"),
         )
         # Saved runs carry derived latencies, not the timestamps behind them.
         # Reconstruct a consistent set of monotonic marks from those durations so
