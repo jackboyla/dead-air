@@ -176,9 +176,9 @@ class TurnTimeline:
     def server_uncovered_ms(self) -> float | None:
         """Server total minus every reported stage, floored at zero.
 
-        The LLM stage spans the whole reply, so the stages can only overlap past the
-        total, never fall short of it by accident. Any shortfall is a wait no stage
-        measures, such as Smart Turn analysis or a stall.
+        The LLM stage spans the whole reply, so on a normal turn the stages cover the
+        total or overlap past it. A shortfall is time no reported stage measures, such
+        as Smart Turn analysis or a stall.
         """
 
         total = self.server_ms("e2e_s")
